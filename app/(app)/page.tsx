@@ -3,7 +3,8 @@ import { resolveHolder, str, type SP } from "@/lib/session";
 import { formatDate, formatDateLong, today } from "@/lib/dates";
 import { holderMovements, portfolio } from "@/lib/ledger";
 import { pct, usd } from "@/lib/money";
-import { chartData, simplePanel } from "@/lib/views";
+import { aporteDetails, chartData, simplePanel } from "@/lib/views";
+import { AporteList } from "@/components/AporteList";
 import { InterestChart } from "@/components/InterestChart";
 import { DemoBadge, Flash, StatusBadge } from "@/components/ui";
 
@@ -25,6 +26,7 @@ export default async function PanelPage({ searchParams }: { searchParams: SP }) 
   const pf = portfolio(holder.id, asOf);
   const chart = chartData(holder.id, asOf);
   const recent = holderMovements(holder.id).slice(0, 5);
+  const aportes = aporteDetails(holder.id, asOf);
   const isToken = holder.kind === "token";
   const first = holder.name.split(" ")[0];
   const next = s.upcoming[0];
@@ -114,6 +116,15 @@ export default async function PanelPage({ searchParams }: { searchParams: SP }) 
       )}
 
       <div className="card section">
+        <h2 style={{ marginBottom: 4 }}>{viewingOther ? "Sus" : "Tus"} aportes</h2>
+        <p className="note" style={{ marginTop: 0 }}>Tocá cada fecha para ver el detalle y cuándo cobra intereses.</p>
+        <AporteList items={aportes} />
+        <p className="note" style={{ marginTop: 12, marginBottom: 0 }}>
+          Cada aporte genera {pct(s.rateBps)} anual y cobra intereses cada 6 meses desde su fecha. Es una tasa pactada, no una garantía de pago.
+        </p>
+      </div>
+
+      <div className="card section">
         <div className="total-row" style={{ marginBottom: 8 }}>
           <h2 style={{ margin: 0 }}>Últimos movimientos</h2>
           <Link href={`/movimientos${q}`} className="note">Ver todos</Link>
@@ -131,28 +142,6 @@ export default async function PanelPage({ searchParams }: { searchParams: SP }) 
         </ul>
       </div>
 
-      <details className="card section">
-        <summary style={{ cursor: "pointer", fontWeight: 650 }}>Ver el detalle de cada aporte</summary>
-        <div className="table-wrap" style={{ marginTop: 12 }}>
-          <table>
-            <thead><tr><th>Fecha</th><th className="r">Monto</th><th className="r">Intereses generados</th><th>Próximo cobro</th><th>Vence</th></tr></thead>
-            <tbody>
-              {pf.positions.filter((p) => p.status !== "cancelada").map((p) => (
-                <tr key={p.id}>
-                  <td>{formatDate(p.activation_date)}{p.origin === "reinversion" && <small className="faint"> · reinversión</small>}</td>
-                  <td className="r num">{usd(p.outstanding_cents)}</td>
-                  <td className="r num amount-interest">{usd(p.settledInterestCents + p.accruedCents)}</td>
-                  <td>{formatDate(p.nextSettlement)}</td>
-                  <td>{p.maturity_date ? formatDate(p.maturity_date) : <small className="faint">A definir</small>}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p className="note" style={{ marginTop: 12, marginBottom: 0 }}>
-          Cada aporte genera {pct(s.rateBps)} anual y cobra intereses cada 6 meses desde su fecha. Es una tasa pactada, no una garantía de pago.
-        </p>
-      </details>
     </>
   );
 }

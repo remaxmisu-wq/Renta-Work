@@ -381,3 +381,53 @@ export function investorList(asOf: ISODate = today(), opts: { adminView?: boolea
   };
   return { rows, others: others.count >= 2 ? others : null, total };
 }
+
+// ───────────────────────── Detalle por aporte ─────────────────────────
+
+export interface AporteDetail {
+  id: number;
+  date: ISODate; // fecha en que se puso la plata
+  origin: PositionRow["origin"];
+  amountCents: number; // capital actual
+  originalCents: number;
+  rateBps: number;
+  days: number;
+  generatedCents: number;
+  perMonthCents: number;
+  maturity: ISODate | null;
+  schedule: { date: ISODate; cents: number; done: boolean }[]; // cobros ya liquidados y próximos
+}
+
+export function aporteDetails(holderId: number, asOf: ISODate = today(), upcomingCount = 4): AporteDetail[] {
+  const db = getDb();
+  return positionsView(holderId, asOf)
+    .filter((p) => p.status !== "cancelada")
+    .map((p) => {
+      const st = positionState(p);
+      const past = (db.prepare(
+        "SELECT effective_date d, amount_cents c FROM movements WHERE position_id = ? AND type = 'liquidacion' AND status = 'completada' ORDER BY effective_date",
+      ).all(p.id) as { d: string; c: number }[]).map((r) => ({ date: r.d, cents: r.c, done: true }));
+      const future: AporteDetail["schedule"] = [];
+      if (p.status === "activa") {
+        for (let k = p.settlements_count; k < p.settlements_count + upcomingCount; k++) {
+          const end = periodEnd(st, k);
+          const est = k === p.settlements_count ? accruedToDate(st, end) : accrueUsd(p.outstanding_cents, p.rate_bps, periodEnd(st, k - 1), end);
+          future.push({ date: end, cents: est.mul(100).floor().toNumber(), done: false });
+          if (p.maturity_date && end >= p.maturity_date) break;
+        }
+      }
+      return {
+        id: p.id,
+        date: p.activation_date,
+        origin: p.origin,
+        amountCents: p.outstanding_cents,
+        originalCents: p.principal_cents,
+        rateBps: p.rate_bps,
+        days: Math.max(0, daysBetween(p.activation_date, asOf)),
+        generatedCents: p.settledInterestCents + p.accruedCents,
+        perMonthCents: Math.floor((p.outstanding_cents * p.rate_bps) / 10_000 / 12),
+        maturity: p.maturity_date,
+        schedule: [...past, ...future],
+      };
+    });
+}
