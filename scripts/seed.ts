@@ -29,7 +29,7 @@ function holderByName(name: string, values: { kind?: string; userId?: number | n
   const ex = db.prepare("SELECT id FROM holders WHERE name = ? AND is_demo = ?").get(name, values.isDemo ?? 0) as { id: number } | undefined;
   if (ex) return ex.id;
   return Number(db.prepare("INSERT INTO holders (name, kind, user_id, consent, consent_at, is_demo) VALUES (?,?,?,?, datetime('now'), ?)")
-    .run(name, values.kind ?? "token", values.userId ?? null, values.consent ?? "ninguno", values.isDemo ?? 0).lastInsertRowid);
+    .run(name, values.kind ?? "token", values.userId ?? null, values.consent ?? "completo", values.isDemo ?? 0).lastInsertRowid);
 }
 
 // ───────── Administrador ─────────
@@ -68,7 +68,7 @@ const loans: [string, string, number][] = [
   ["Sebastián David", "2026-08-02", 2_000_000],
 ];
 loans.forEach(([name, date, cents], i) => {
-  const h = holderByName(name, { kind: "prestamo", consent: "ninguno" });
+  const h = holderByName(name, { kind: "prestamo", consent: "completo" });
   importLoan({ holderId: h, principalCents: cents, rateBps: 1200, baseDate: date, reference: "Planilla ClaudeFinanciero", actorId: admin.id, idempotencyKey: `alfah:${i + 1}` });
 });
 

@@ -29,8 +29,9 @@ CREATE TABLE IF NOT EXISTS holders (
   user_id INTEGER UNIQUE REFERENCES users(id),
   name TEXT NOT NULL,
   kind TEXT NOT NULL DEFAULT 'token' CHECK (kind IN ('token','prestamo')),
-  -- Consentimiento para la vista "Inversores": ninguno | agregado | anonimo | completo
-  consent TEXT NOT NULL DEFAULT 'ninguno' CHECK (consent IN ('ninguno','agregado','anonimo','completo')),
+  -- Visibilidad en la tabla de posiciones. Por decisión del negocio todos los participantes se ven
+  -- entre sí ('completo'); el administrador puede ocultar o anonimizar a alguien puntual.
+  consent TEXT NOT NULL DEFAULT 'completo' CHECK (consent IN ('ninguno','agregado','anonimo','completo')),
   consent_at TEXT,
   auto_reinvest INTEGER NOT NULL DEFAULT 0,
   auto_reinvest_at TEXT,

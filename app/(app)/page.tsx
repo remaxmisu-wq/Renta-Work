@@ -3,7 +3,8 @@ import { resolveHolder, str, type SP } from "@/lib/session";
 import { daysBetween, formatDate, formatDateLong, today } from "@/lib/dates";
 import { holderMovements, portfolio } from "@/lib/ledger";
 import { pct, usd } from "@/lib/money";
-import { aporteDetails, chartData, deptoEquivalence, simplePanel } from "@/lib/views";
+import { aporteDetails, chartData, deptoEquivalence, investorList, simplePanel } from "@/lib/views";
+import { Leaderboard } from "@/components/Leaderboard";
 import { getDb } from "@/lib/db";
 import { InterestChart } from "@/components/InterestChart";
 import { DeptoCard } from "@/components/DeptoCard";
@@ -42,6 +43,7 @@ export default async function PanelPage({ searchParams }: { searchParams: SP }) 
             </ol>
           </div>
         </div>
+        {(() => { const b = investorList(today(), { adminView: user.role === "admin" }); return <Leaderboard rows={b.rows} meId={null} total={b.total} />; })()}
       </>
     );
   }
@@ -68,14 +70,25 @@ export default async function PanelPage({ searchParams }: { searchParams: SP }) 
   for (const a of aportes) for (const c of a.schedule) if (!c.done) byDate.set(c.date, (byDate.get(c.date) ?? 0) + c.cents);
   const cobros = [...byDate.entries()].sort().slice(0, 5).map(([date, cents]) => ({ date, cents }));
 
-  const badges: Badge[] = isToken ? [
+  const sinceFirst = firstDate ? daysBetween(firstDate, asOf) : 0;
+  const badges: Badge[] = [
     { label: "Primer aporte", done: aportes.length > 0, hint: firstDate ? formatDate(firstDate) : "Comprá tu primer token" },
     { label: "Primer cobro", done: hasType("liquidacion"), hint: hasType("liquidacion") ? "Ya liquidaste intereses" : "A los 6 meses del aporte" },
-    { label: "Primera reinversión", done: hasType("reinversion"), hint: hasType("reinversion") ? "Tus intereses ya generan" : "Reinvertí tus intereses" },
-    { label: "1 m² del depto", done: m2 >= 1, hint: "Con USD 1.000 invertidos" },
-    { label: "1 año invirtiendo", done: !!firstDate && daysBetween(firstDate, asOf) >= 365, hint: "Desde tu primer aporte" },
-    { label: "5 m² del depto", done: m2 >= 5, hint: "Con USD 5.000 invertidos" },
-  ] : [];
+    ...(isToken
+      ? [
+          { label: "Primera reinversión", done: hasType("reinversion"), hint: hasType("reinversion") ? "Tus intereses ya generan" : "Reinvertí tus intereses" },
+          { label: "1 m² del depto", done: m2 >= 1, hint: "Con USD 1.000 invertidos" },
+        ]
+      : [
+          { label: "6 meses invirtiendo", done: sinceFirst >= 182, hint: "Desde tu primer aporte" },
+          { label: "USD 1.000 generados", done: s.generatedCents >= 100_000, hint: "En intereses" },
+        ]),
+    { label: "1 año invirtiendo", done: sinceFirst >= 365, hint: "Desde tu primer aporte" },
+    isToken
+      ? { label: "5 m² del depto", done: m2 >= 5, hint: "Con USD 5.000 invertidos" }
+      : { label: "USD 10.000 generados", done: s.generatedCents >= 1_000_000, hint: "En intereses" },
+  ];
+  const board = investorList(asOf, { adminView: user.role === "admin", alsoHolderId: holder.is_demo ? holder.id : undefined });
 
   return (
     <>
@@ -112,8 +125,11 @@ export default async function PanelPage({ searchParams }: { searchParams: SP }) 
         <div className="section"><ReinvestNudge availableCents={s.availableCents} rateBps={s.rateBps} href="/reinvertir" /></div>
       )}
 
+      <Leaderboard rows={board.rows} meId={holder.id} total={board.total} />
+
       <div className="grid cols-2 section">
-        {isToken && <Simulator capitalCents={s.capitalCents} rateBps={s.rateBps} m2PriceCents={currentM2Price()} ctaHref={own ? "/invertir" : null} />}
+        <Simulator capitalCents={s.capitalCents} rateBps={s.rateBps} m2PriceCents={isToken ? currentM2Price() : null} ctaHref={own && isToken ? "/invertir" : null}
+          ctaNote={isToken ? undefined : "Estimado al 12% anual. Para sumar plata nueva, hablalo con el administrador. No es una garantía de pago."} />
         <div className="card">
           <h2>Próximos cobros de intereses</h2>
           <ul className="list">

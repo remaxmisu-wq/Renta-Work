@@ -87,3 +87,8 @@ Se importan como saldo inicial (`saldo_inicial_importado`), titulares de tipo `p
 | Consentimiento de los titulares importados | No otorgado hasta que el administrador lo registre |
 | Emisor, contratos, respaldo, impuestos y encuadre regulatorio | Sin definir. Por eso la recepción real de dinero está **deshabilitada** (`OPERACIONES_REALES=false`): sólo se pueden completar operaciones de titulares de demostración |
 | Integración con el CRM (usuarios, rendiciones, documentos) | Módulos puente listos para reemplazar |
+
+## 6. Cambios de alcance acordados después
+
+- **Panel lúdico por usuario.** Cada usuario habilitado ve su propio panel: contador de intereses en vivo, simulador "¿Y si sumás más?", próximos cobros, gráfico, equivalencia en m² (sólo tokens), logros y detalle desplegable de cada aporte.
+- **Transparencia entre participantes.** Por decisión del negocio todos los participantes se ven entre sí en una **tabla de posiciones** en la pantalla principal (nombre, plata puesta, intereses generados, ordenados por plata puesta). Esto reemplaza la regla original de "sin rankings" y el consentimiento por defecto pasa a `completo`; el administrador puede ocultar o anonimizar a alguien puntual.

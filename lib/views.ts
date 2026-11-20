@@ -345,10 +345,10 @@ export interface InvestorListRow {
 }
 
 /** Lista simple de inversores. Respeta el consentimiento salvo para el administrador. */
-export function investorList(asOf: ISODate = today(), opts: { adminView?: boolean; includeDemo?: boolean } = {}) {
+export function investorList(asOf: ISODate = today(), opts: { adminView?: boolean; includeDemo?: boolean; alsoHolderId?: number } = {}) {
   const holders = getDb()
-    .prepare(`SELECT * FROM holders ${opts.includeDemo ? "" : "WHERE is_demo = 0"} ORDER BY name`)
-    .all() as Holder[];
+    .prepare(`SELECT * FROM holders WHERE ${opts.includeDemo ? "1" : "(is_demo = 0 OR id = ?)"} ORDER BY name`)
+    .all(...(opts.includeDemo ? [] : [opts.alsoHolderId ?? -1])) as Holder[];
   const rows: InvestorListRow[] = [];
   const others = { count: 0, investedCents: 0, generatedCents: 0, perMonthCents: 0 };
   let anon = 0;
@@ -373,6 +373,7 @@ export function investorList(asOf: ISODate = today(), opts: { adminView?: boolea
       perMonthCents: s.perMonthCents,
     });
   }
+  rows.sort((a, b) => b.investedCents - a.investedCents || b.generatedCents - a.generatedCents);
   const all = [...rows, ...(others.count >= 2 ? [others] : [])];
   const total = {
     investedCents: all.reduce((a, r) => a + r.investedCents, 0),
