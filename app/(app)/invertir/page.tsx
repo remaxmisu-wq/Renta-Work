@@ -34,7 +34,7 @@ export default async function InvestPage({ searchParams }: { searchParams: SP })
             ) : (
               <form action={investAction} className="form">
                 <IdemKey />
-                <TokensField max={maxByCap} />
+                <TokensField max={maxByCap} initial={Math.min(maxByCap, Math.max(1, Number(typeof sp.tokens === "string" ? sp.tokens : 1) || 1))} />
                 <label>Origen de los fondos
                   <select name="source">
                     <option value="aporte">Transferencia en dólares</option>

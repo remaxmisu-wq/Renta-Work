@@ -1,6 +1,7 @@
 import { logoutAction } from "@/app/actions";
 import { requireUser } from "@/lib/auth";
 import { realOperationsEnabled } from "@/lib/ledger";
+import Script from "next/script";
 import { Nav } from "@/components/Nav";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +32,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </header>
       <main className="main">{children}</main>
+      <Script src="/rw-enhance.js" strategy="afterInteractive" />
     </>
   );
 }

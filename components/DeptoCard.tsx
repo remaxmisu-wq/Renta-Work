@@ -16,10 +16,12 @@ export function DeptoCard({ d, own = true }: { d: DeptoEquivalence; own?: boolea
   const W = COLS * (size + gap) - gap;
   const H = rows * (size + gap) - gap;
   const filled = Math.min(d.m2, cells);
+  const goalM2 = [1, 2, 5, 10, 20, 40, d.surfaceM2].find((g) => g > d.m2 + 1e-9);
+  const goal = goalM2 ? { m2: goalM2, tokens: Math.max(1, Math.ceil((goalM2 * d.pricePerM2Cents - d.capitalCents) / 10_000)) } : null;
   const pctShare = (d.share * 100).toLocaleString("es-AR", { maximumFractionDigits: 2 });
   return (
     <div className="card section">
-      <h2 style={{ marginBottom: 4 }}>{own ? "Tu" : "Su"} relación con el departamento</h2>
+      <h2 style={{ marginBottom: 4 }}>{own ? "Tu" : "Su"} plata, en metros del depto</h2>
       <p className="muted" style={{ marginTop: 0 }}>
         {d.projectName} · Unidad {d.unit} · {d.typology} · {num(d.surfaceM2, 2)} m² · {d.address}
       </p>
@@ -33,7 +35,7 @@ export function DeptoCard({ d, own = true }: { d: DeptoEquivalence; own?: boolea
               return (
                 <g key={i}>
                   <rect x={x} y={y} width={size} height={size} rx="4" fill="var(--bg)" stroke="var(--line)" />
-                  {part > 0 && <rect x={x} y={y} width={size * part} height={size} rx="4" fill="var(--green)" />}
+                  {part > 0 && <rect className="tile-on" style={{ ["--i" as string]: i } as React.CSSProperties} x={x} y={y} width={size * part} height={size} rx="4" fill="var(--green)" />}
                 </g>
               );
             })}
@@ -49,7 +51,16 @@ export function DeptoCard({ d, own = true }: { d: DeptoEquivalence; own?: boolea
           </p>
           <p className="num" style={{ fontSize: "2rem", fontWeight: 750, margin: "0 0 4px", color: "var(--green)" }}>{num(d.m2, 2)} m²</p>
           <p className="muted">Es el {pctShare} % de la unidad.</p>
-          <dl className="kv" style={{ fontSize: "0.93rem" }}>
+          {goal && (
+            <div className="goal">
+              <div className="total-row" style={{ fontSize: "0.93rem" }}>
+                <strong>Próximo objetivo: {num(goal.m2, goal.m2 % 1 ? 2 : 0)} m²</strong>
+                <span className="muted">te faltan {goal.tokens} token{goal.tokens > 1 ? "s" : ""}</span>
+              </div>
+              <div className="progress" style={{ marginTop: 6 }}><div style={{ width: `${Math.max(3, (d.m2 / goal.m2) * 100)}%` }} /></div>
+            </div>
+          )}
+          <dl className="kv" style={{ fontSize: "0.93rem", marginTop: 16 }}>
             <dt>Valor de referencia del m²</dt><dd>{usd(d.pricePerM2Cents)}</dd>
             <dt>Precio de referencia de la unidad</dt><dd>{usd(d.unitPriceCents)}</dd>
             <dt>Valores al</dt><dd>{formatDate(d.priceDate)}</dd>
