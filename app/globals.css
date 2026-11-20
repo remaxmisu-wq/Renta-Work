@@ -241,7 +241,7 @@ details.row > summary.inv-grid { display: grid; grid-template-columns: minmax(0,
 .board .who, .board .amt { display: grid; gap: 2px; min-width: 0; }
 .board .amt { text-align: right; }
 .board small { color: var(--muted); font-size: .8rem; }
-.board .you { margin-left: 8px; font-size: .72rem; font-weight: 700; color: var(--navy-ink); background: var(--surface); border: 1px solid var(--navy); padding: 1px 8px; border-radius: 999px; vertical-align: middle; }
+.you { margin-left: 8px; font-size: .72rem; font-weight: 700; color: var(--navy-ink); background: var(--surface); border: 1px solid var(--navy); padding: 1px 8px; border-radius: 999px; vertical-align: middle; }
 .board-total { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: .93rem; color: var(--muted); }
 .board-total strong { color: var(--ink); }
 @media (max-width: 560px) {
@@ -249,3 +249,45 @@ details.row > summary.inv-grid { display: grid; grid-template-columns: minmax(0,
   .board .amt { grid-column: 2; text-align: left; }
   .board .pos { width: 32px; height: 32px; }
 }
+
+/* Festejo */
+.celebrate { position: relative; overflow: hidden; padding: 24px 0; }
+.celebrate-card { max-width: 620px; margin: 0 auto; text-align: center; position: relative; z-index: 1; }
+.celebrate-icon { margin: 4px auto 12px; width: 72px; animation: rwpop .6s ease-out both; }
+.celebrate-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; text-align: left; }
+.celebrate-grid > div { background: var(--bg); border-radius: 12px; padding: 12px 14px; display: grid; gap: 2px; }
+.celebrate-grid strong { font-size: 1.1rem; }
+.confetti { position: absolute; inset: 0; pointer-events: none; }
+.confetti i { position: absolute; top: -12px; width: 9px; height: 14px; border-radius: 2px; opacity: .9; animation: rwfall 2.6s ease-in both; }
+@keyframes rwfall { from { transform: translateY(-20px) rotate(0); opacity: 1; } to { transform: translateY(520px) rotate(320deg); opacity: 0; } }
+@keyframes rwpop { 0% { transform: scale(.6); opacity: .4; } 70% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .confetti { display: none; } .celebrate-icon { animation: none; } }
+@media (max-width: 560px) { .celebrate-grid { grid-template-columns: 1fr; } }
+
+/* Cobrar o reinvertir */
+.live .big-live.num { display: block; }
+.choice-card { position: relative; }
+.choice-card.recommended { border: 2px solid var(--green); }
+.ribbon { position: absolute; top: -12px; left: 20px; background: var(--green); color: var(--surface); font-size: .75rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; letter-spacing: .04em; text-transform: uppercase; }
+
+/* Línea de tiempo de movimientos */
+.tl-month + .tl-month { margin-top: 18px; }
+.tl-head { text-transform: capitalize; color: var(--muted); font-size: .9rem; font-weight: 600; margin: 0 0 8px; }
+.timeline { list-style: none; margin: 0; padding: 0; position: relative; }
+.timeline::before { content: ""; position: absolute; left: 19px; top: 8px; bottom: 8px; width: 2px; background: var(--line); }
+.tl-item { position: relative; display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 10px 0; }
+.tl-icon { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; position: relative; z-index: 1; border: 2px solid var(--surface); }
+.tl-in { background: var(--navy-soft); color: var(--navy-ink); }
+.tl-interest { background: var(--green); color: var(--surface); }
+.tl-reinvest { background: var(--green-soft); color: var(--green); }
+.tl-out { background: var(--bg); color: var(--muted); }
+.tl-fix { background: var(--bg); color: var(--faint); }
+.tl-body { display: grid; gap: 2px; min-width: 0; padding-top: 2px; }
+.tl-title { color: var(--ink); font-weight: 600; }
+.tl-body small { color: var(--muted); }
+.tl-amt { text-align: right; font-weight: 650; display: grid; padding-top: 2px; }
+.tl-amt small { color: var(--muted); font-weight: 400; font-size: .8rem; }
+.tl-milestone .tl-body, .tl-milestone .tl-amt { background: var(--green-soft); }
+.tl-milestone { background: linear-gradient(to right, transparent 0 46px, var(--green-soft) 46px); border-radius: 12px; padding-right: 10px; }
+.tl-milestone .tl-body, .tl-milestone .tl-amt { background: transparent; }
+.tl-milestone .tl-body { padding-left: 6px; }

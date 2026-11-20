@@ -40,6 +40,7 @@
       var t = Number(input.value);
       var add = t * 10000;
       set("tokens", t + (t === 1 ? " token" : " tokens"));
+      el.querySelectorAll("[data-out-tokens]").forEach(function (o) { o.textContent = t; });
       set("amount", usd(add, 0));
       set("month", "+ " + usd(Math.floor(add * rate / 12)));
       set("year", "+ " + usd(Math.floor(add * rate)));

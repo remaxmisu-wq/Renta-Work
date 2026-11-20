@@ -25,7 +25,7 @@ function back(to: string, kind: "ok" | "error", msg: string): never {
 }
 
 /** Ejecuta una operación y vuelve con mensaje. Los errores de negocio se muestran al usuario. */
-async function run(to: string, okMsg: string | ((r: unknown) => string), fn: () => unknown | Promise<unknown>): Promise<never> {
+async function run(to: string, okMsg: string | ((r: unknown) => string), fn: () => unknown | Promise<unknown>, successUrl?: string): Promise<never> {
   let result: unknown;
   try {
     result = await fn();
@@ -36,6 +36,7 @@ async function run(to: string, okMsg: string | ((r: unknown) => string), fn: () 
     back(to, "error", "No se pudo completar la operación. Probá de nuevo.");
   }
   revalidatePath("/", "layout");
+  if (successUrl) redirect(successUrl);
   back(to, "ok", typeof okMsg === "function" ? okMsg(result) : okMsg);
 }
 
@@ -73,7 +74,7 @@ export async function investAction(fd: FormData) {
       });
     }
     return requestInvestment({ holderId: holder.id, tokens, source: "aporte", actorId: user.id, idempotencyKey: s(fd, "idem") });
-  });
+  }, `/listo?tipo=inversion&tokens=${tokens}`);
 }
 
 export async function commissionSplitAction(fd: FormData) {
@@ -83,21 +84,21 @@ export async function commissionSplitAction(fd: FormData) {
     if (s(fd, "accept") !== "on" && tokens > 0) throw new RwError("Confirmá que leíste las condiciones.");
     const { user } = await myHolderId();
     return splitCommission({ commissionId: Number(s(fd, "commission")), userId: user.id, collectCents: collect, investTokens: tokens, idempotencyKey: s(fd, "idem") });
-  });
+  }, tokens > 0 ? `/listo?tipo=inversion&tokens=${tokens}` : undefined);
 }
 
 export async function reinvestAction(fd: FormData) {
   const tokens = Number(s(fd, "tokens"));
-  return run("/reinvertir", `Reinvertiste ${tokens} token${tokens > 1 ? "s" : ""}. Empiezan a generar intereses desde hoy.`, async () => {
+  return run("/intereses", `Reinvertiste ${tokens} token${tokens > 1 ? "s" : ""}. Empiezan a generar intereses desde hoy.`, async () => {
     if (s(fd, "accept") !== "on") throw new RwError("Confirmá el resumen antes de reinvertir.");
     const { user, holder } = await myHolderId();
     return reinvest({ holderId: holder.id, tokens, actorId: user.id, mode: "manual", idempotencyKey: s(fd, "idem") });
-  });
+  }, `/listo?tipo=reinversion&tokens=${tokens}`);
 }
 
 export async function autoReinvestAction(fd: FormData) {
   const enable = s(fd, "enable") === "1";
-  return run("/reinvertir", enable ? "Reinversión automática activada." : "Reinversión automática desactivada.", async () => {
+  return run("/intereses", enable ? "Reinversión automática activada." : "Reinversión automática desactivada.", async () => {
     const { user, holder } = await myHolderId();
     if (enable && s(fd, "accept") !== "on") throw new RwError("Confirmá la autorización.");
     setAutoReinvest(holder.id, enable, user.id);
@@ -105,7 +106,7 @@ export async function autoReinvestAction(fd: FormData) {
 }
 
 export async function payoutAction(fd: FormData) {
-  return run("/cobrar", "Solicitud de cobro enviada. Te avisamos cuando se pague.", async () => {
+  return run("/intereses", "Solicitud de cobro enviada. Te avisamos cuando se pague.", async () => {
     const { user, holder } = await myHolderId();
     const cents = parseUsdInput(s(fd, "amount"));
     if (!cents) throw new RwError("Ingresá un importe válido.");

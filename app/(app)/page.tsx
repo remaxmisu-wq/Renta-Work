@@ -3,8 +3,7 @@ import { resolveHolder, str, type SP } from "@/lib/session";
 import { daysBetween, formatDate, formatDateLong, today } from "@/lib/dates";
 import { holderMovements, portfolio } from "@/lib/ledger";
 import { pct, usd } from "@/lib/money";
-import { aporteDetails, chartData, deptoEquivalence, investorList, simplePanel } from "@/lib/views";
-import { Leaderboard } from "@/components/Leaderboard";
+import { aporteDetails, chartData, deptoEquivalence, simplePanel } from "@/lib/views";
 import { getDb } from "@/lib/db";
 import { InterestChart } from "@/components/InterestChart";
 import { DeptoCard } from "@/components/DeptoCard";
@@ -43,7 +42,6 @@ export default async function PanelPage({ searchParams }: { searchParams: SP }) 
             </ol>
           </div>
         </div>
-        {(() => { const b = investorList(today(), { adminView: user.role === "admin" }); return <Leaderboard rows={b.rows} meId={null} total={b.total} />; })()}
       </>
     );
   }
@@ -88,7 +86,7 @@ export default async function PanelPage({ searchParams }: { searchParams: SP }) 
       ? { label: "5 m² del depto", done: m2 >= 5, hint: "Con USD 5.000 invertidos" }
       : { label: "USD 10.000 generados", done: s.generatedCents >= 1_000_000, hint: "En intereses" },
   ];
-  const board = investorList(asOf, { adminView: user.role === "admin", alsoHolderId: holder.is_demo ? holder.id : undefined });
+
 
   return (
     <>
@@ -122,10 +120,8 @@ export default async function PanelPage({ searchParams }: { searchParams: SP }) 
       </div>
 
       {own && isToken && s.availableCents >= 10_000 && (
-        <div className="section"><ReinvestNudge availableCents={s.availableCents} rateBps={s.rateBps} href="/reinvertir" /></div>
+        <div className="section"><ReinvestNudge availableCents={s.availableCents} rateBps={s.rateBps} href="/intereses" /></div>
       )}
-
-      <Leaderboard rows={board.rows} meId={holder.id} total={board.total} />
 
       <div className="grid cols-2 section">
         <Simulator capitalCents={s.capitalCents} rateBps={s.rateBps} m2PriceCents={isToken ? currentM2Price() : null} ctaHref={own && isToken ? "/invertir" : null}
@@ -157,7 +153,7 @@ export default async function PanelPage({ searchParams }: { searchParams: SP }) 
         <div className="card section">
           <div className="total-row">
             <span><strong>Tenés {usd(s.availableCents)} de intereses para usar</strong><br /><small>Cuando sumes USD 100 los podés reinvertir; mientras tanto, los podés cobrar.</small></span>
-            <Link className="btn" href="/cobrar">Cobrar</Link>
+            <Link className="btn" href="/intereses">Ver mis intereses</Link>
           </div>
         </div>
       )}

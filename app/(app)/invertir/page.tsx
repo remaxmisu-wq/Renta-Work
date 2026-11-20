@@ -1,7 +1,9 @@
 import { commissionSplitAction, investAction } from "@/app/actions";
 import { resolveHolder, type SP } from "@/lib/session";
 import { formatDate, addMonths, today } from "@/lib/dates";
-import { availableCommissions, capUsage, commissionFreeCents, currentEmission } from "@/lib/ledger";
+import { availableCommissions, capUsage, commissionFreeCents, currentEmission, ledgerBalances } from "@/lib/ledger";
+import { currentM2PriceCents } from "@/lib/views";
+import { Simulator } from "@/components/Fun";
 import { pct, usd, TOKEN_CENTS } from "@/lib/money";
 import { SubmitButton } from "@/components/SubmitButton";
 import { TokensField } from "@/components/TokensField";
@@ -14,6 +16,7 @@ export default async function InvestPage({ searchParams }: { searchParams: SP })
   const cap = e ? capUsage(e.id) : null;
   const commissions = availableCommissions(user.id);
   const maxByCap = cap?.remainingCents == null ? 0 : Math.floor(cap.remainingCents / TOKEN_CENTS);
+  const initial = Math.min(Math.max(1, maxByCap), Math.max(1, Number(typeof sp.tokens === "string" ? sp.tokens : 10) || 10));
 
   if (!holder || holder.kind !== "token") {
     return (<><PageHead title="Invertir" back="/" /><div className="card empty">Tu cuenta no tiene habilitada la compra de tokens.</div></>);
@@ -21,12 +24,11 @@ export default async function InvestPage({ searchParams }: { searchParams: SP })
 
   return (
     <>
-      <PageHead title="Invertir" back="/" sub="Comprás tokens enteros de USD 100. Empiezan a generar intereses cuando se confirman los fondos." />
+      <PageHead title="Sumá plata a Renta Work" back="/" sub="Elegí cuántos tokens querés y mirá cuánto vas a ganar." />
       <Flash sp={sp} />
       {!e ? <div className="card empty">No hay una emisión abierta en este momento.</div> : (
         <div className="grid cols-2">
-          <div className="card">
-            <h2>Nueva inversión</h2>
+          <div>
             {cap?.remainingCents === null ? (
               <div className="alert warn">El cupo de la emisión todavía no está definido. Todavía no se pueden recibir solicitudes.</div>
             ) : maxByCap === 0 ? (
@@ -34,8 +36,11 @@ export default async function InvestPage({ searchParams }: { searchParams: SP })
             ) : (
               <form action={investAction} className="form">
                 <IdemKey />
-                <TokensField max={maxByCap} initial={Math.min(maxByCap, Math.max(1, Number(typeof sp.tokens === "string" ? sp.tokens : 1) || 1))} />
-                <label>Origen de los fondos
+                <Simulator capitalCents={ledgerBalances(holder.id).capitalCents} rateBps={e.rate_bps} m2PriceCents={currentM2PriceCents()} ctaHref={null}
+                  title="¿Cuántos tokens sumás?" subtitle="Cada token es USD 100. Mové la barra." formName="tokens"
+                  maxTokens={Math.min(maxByCap, 500)} initialTokens={initial} ctaNote="Estimado al 12% anual pactado. No es una garantía de pago." />
+                <div className="card form">
+                <label>¿De dónde sale la plata?
                   <select name="source">
                     <option value="aporte">Transferencia en dólares</option>
                     {commissions.map((c) => (
@@ -44,10 +49,11 @@ export default async function InvestPage({ searchParams }: { searchParams: SP })
                   </select>
                 </label>
                 <label className="check"><input type="checkbox" name="accept" required />
-                  <span>Leí las condiciones: tasa {pct(e.rate_bps)} nominal anual, interés simple, liquidación cada 6 meses desde la activación{e.term_months ? `, plazo de ${e.term_months} meses${e.term_status === "propuesta" ? " (propuesta pendiente de confirmación)" : ""}` : ""}. La tasa contractual no es una garantía de pago.</span>
+                  <span>Leí las condiciones: {pct(e.rate_bps)} anual, cobro de intereses cada 6 meses desde la activación{e.term_months ? `, plazo de ${e.term_months} meses${e.term_status === "propuesta" ? " (propuesta pendiente de confirmación)" : ""}` : ""}. La tasa pactada no es una garantía de pago.</span>
                 </label>
-                <SubmitButton>Enviar solicitud</SubmitButton>
-                <p className="note">La solicitud queda pendiente. Se activa en la fecha en que el administrador confirme los fondos.</p>
+                <SubmitButton className="btn green">Confirmar inversión</SubmitButton>
+                <p className="note" style={{ margin: 0 }}>Empieza a generar intereses el día que se confirmen los fondos.</p>
+                </div>
               </form>
             )}
           </div>

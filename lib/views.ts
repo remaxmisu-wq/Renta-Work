@@ -15,13 +15,15 @@ interface MovementWithOrig extends Movement {
   orig_type: string | null;
 }
 
-function completedMovements(holderId: number): MovementWithOrig[] {
+function completedMovements(holderIds: number | number[]): MovementWithOrig[] {
+  const ids = Array.isArray(holderIds) ? holderIds : [holderIds];
+  if (!ids.length) return [];
   return getDb()
     .prepare(
       `SELECT m.*, o.type AS orig_type FROM movements m LEFT JOIN movements o ON o.id = m.reverses_id
-       WHERE m.holder_id = ? AND m.status = 'completada' ORDER BY m.effective_date, m.id`,
+       WHERE m.holder_id IN (${ids.map(() => "?").join(",")}) AND m.status = 'completada' ORDER BY m.effective_date, m.id`,
     )
-    .all(holderId) as MovementWithOrig[];
+    .all(...ids) as MovementWithOrig[];
 }
 
 function kindOf(m: MovementWithOrig): "aporte" | "retiro" | "liquidacion" | "ajuste" | "reinversion" | null {
@@ -70,10 +72,22 @@ function accruedAt(positions: PositionRow[], t: ISODate): number {
 }
 
 export function chartData(holderId: number, asOf: ISODate = today(), projectMonths = 12): ChartData {
-  const ms = completedMovements(holderId);
-  const positions = getDb().prepare("SELECT * FROM positions WHERE holder_id = ?").all(holderId) as PositionRow[];
-  const pf = portfolio(holderId, asOf);
+  return chartDataFor([holderId], asOf, projectMonths);
+}
+
+/** Igual que chartData, sumando varios titulares (vista general). */
+export function chartDataFor(holderIds: number[], asOf: ISODate = today(), projectMonths = 12): ChartData {
+  const ms = completedMovements(holderIds);
   if (!ms.length) return { history: [], projection: [], withdrawals: [], reinvestments: [] };
+  const positions = getDb()
+    .prepare(`SELECT * FROM positions WHERE holder_id IN (${holderIds.map(() => "?").join(",")})`)
+    .all(...holderIds) as PositionRow[];
+  const pfs = holderIds.map((id) => portfolio(id, asOf));
+  const pf = {
+    accruedCents: pfs.reduce((a, x) => a + x.accruedCents, 0),
+    balances: { capitalCents: pfs.reduce((a, x) => a + x.balances.capitalCents, 0) },
+    positions: pfs.flatMap((x) => x.positions),
+  };
 
   const first = ms[0].effective_date;
   const dates: ISODate[] = [];
@@ -468,4 +482,42 @@ export function deptoEquivalence(capitalCents: number): DeptoEquivalence | null 
     unitPriceCents: p.ref_price_cents, pricePerM2Cents: price.price_cents, priceDate: price.effective_date, priceSource: price.source,
     capitalCents, m2, share: surface ? m2 / surface : 0,
   };
+}
+
+// ───────────────────────── Vista general (solapa Inversión) ─────────────────────────
+
+export function generalOverview(asOf: ISODate = today()) {
+  const list = investorList(asOf, { adminView: true });
+  const holderIds = (getDb().prepare("SELECT id FROM holders WHERE is_demo = 0").all() as { id: number }[]).map((r) => r.id);
+  let capital = 0, yearly = 0, generated = 0;
+  const cobros = new Map<string, { cents: number; names: Set<string> }>();
+  for (const id of holderIds) {
+    const s = simplePanel(id, asOf);
+    capital += s.capitalCents;
+    yearly += (s.capitalCents * s.rateBps) / 10_000;
+    generated += s.generatedCents;
+    const name = (getDb().prepare("SELECT name FROM holders WHERE id = ?").get(id) as { name: string }).name;
+    for (const a of aporteDetails(id, asOf)) for (const c of a.schedule) if (!c.done) {
+      const e = cobros.get(c.date) ?? { cents: 0, names: new Set<string>() };
+      e.cents += c.cents; e.names.add(name); cobros.set(c.date, e);
+    }
+  }
+  return {
+    list,
+    capitalCents: capital,
+    generatedCents: generated,
+    perDayExact: yearly / 365,
+    perDayCents: Math.floor(yearly / 365),
+    perMonthCents: Math.floor(yearly / 12),
+    perYearCents: Math.floor(yearly),
+    investors: list.rows.length + (list.others?.count ?? 0),
+    chart: chartDataFor(holderIds, asOf),
+    upcoming: [...cobros.entries()].sort(([a], [b]) => (a < b ? -1 : 1)).slice(0, 6)
+      .map(([date, v]) => ({ date, cents: v.cents, names: [...v.names] })),
+  };
+}
+
+export function currentM2PriceCents(): number | null {
+  const r = getDb().prepare("SELECT price_cents FROM m2_prices ORDER BY effective_date DESC, id DESC LIMIT 1").get() as { price_cents: number } | undefined;
+  return r?.price_cents ?? null;
 }

@@ -14,7 +14,7 @@ function short(cents: number) {
  * Gráfico ilustrativo: cómo crecen los intereses. Verde lleno = lo generado hasta hoy;
  * línea punteada = estimado de los próximos 12 meses si no se agrega ni se retira plata.
  */
-export function InterestChart({ data }: { data: ChartData }) {
+export function InterestChart({ data, estimateLabel = "Estimado si no agregás ni retirás plata" }: { data: ChartData; estimateLabel?: string }) {
   const { history, projection } = data;
   if (!history.length) return <div className="empty">Cuando tengas tu primera inversión, acá vas a ver cómo crecen tus intereses.</div>;
   const last = history[history.length - 1];
@@ -57,7 +57,7 @@ export function InterestChart({ data }: { data: ChartData }) {
       </svg>
       <div className="legend">
         <span><svg width="18" height="6"><line x1="0" x2="18" y1="3" y2="3" stroke="var(--green)" strokeWidth="2.5" /></svg> Intereses generados</span>
-        <span><svg width="18" height="6"><line x1="0" x2="18" y1="3" y2="3" stroke="var(--green)" strokeWidth="2" strokeDasharray="4 3" /></svg> Estimado si no agregás ni retirás plata</span>
+        <span><svg width="18" height="6"><line x1="0" x2="18" y1="3" y2="3" stroke="var(--green)" strokeWidth="2" strokeDasharray="4 3" /></svg> {estimateLabel}</span>
       </div>
     </div>
   );
