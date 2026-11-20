@@ -54,9 +54,11 @@ export default async function PortfolioPage({ searchParams }: { searchParams: SP
       )}
 
       <div className="card hero">
-        <div className="label">Total de mi cartera</div>
-        <div className="big num">{usd(pf.totalCents)}</div>
-        <div className="sub">Capital activo + intereses en curso + intereses disponibles. Lo que ya cobraste o reinvertiste no se vuelve a sumar.</div>
+        <div className="total-row">
+          <span className="label">Total de {viewingOther ? "la" : "mi"} cartera</span>
+          <span className="big num">{usd(pf.totalCents)}</span>
+        </div>
+        <div className="sub">Capital activo + intereses en curso + intereses disponibles. Lo que ya se cobró o se reinvirtió no se vuelve a sumar.</div>
       </div>
 
       <div className="grid stats section" style={{ marginTop: 12 }}>
@@ -112,7 +114,7 @@ export default async function PortfolioPage({ searchParams }: { searchParams: SP
       )}
 
       <div className="card section">
-        <h2>Evolución de mi cartera</h2>
+        <h2>Evolución de {viewingOther ? "la" : "mi"} cartera</h2>
         <PortfolioChart data={chart} />
       </div>
 
@@ -181,7 +183,7 @@ export default async function PortfolioPage({ searchParams }: { searchParams: SP
       </div>
 
       <div className="card section">
-        <h2>Mis posiciones</h2>
+        <h2>{viewingOther ? "Posiciones" : "Mis posiciones"}</h2>
         <div className="table-wrap">
           <table>
             <thead><tr><th>Activación</th><th>Origen</th>{isToken && <th className="r">Tokens</th>}<th className="r">Capital</th><th className="r">Tasa</th><th className="r">En curso</th><th>Próx. liquidación</th><th>Vencimiento</th></tr></thead>

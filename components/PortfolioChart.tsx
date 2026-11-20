@@ -37,7 +37,12 @@ export function PortfolioChart({ data }: { data: ChartData }) {
 
   const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => (maxV / 1.08) * f);
   const todayX = x(history[history.length - 1].date);
-  const months = history.length > 1 ? history.filter((_, i) => i % Math.ceil(history.length / 6) === 0) : history;
+  // Etiquetas del eje: una por mes, sin superponerse
+  const months: typeof history = [];
+  for (const p of history) {
+    const prev = months[months.length - 1];
+    if (!prev || (p.date.slice(0, 7) !== prev.date.slice(0, 7) && x(p.date) - x(prev.date) > 56)) months.push(p);
+  }
   const last = history[history.length - 1];
 
   return (

@@ -83,6 +83,12 @@ export function chartData(holderId: number, asOf: ISODate = today(), projectMont
     d = addMonths(first, dates.length);
   }
   dates.push(asOf);
+  // Cada movimiento agrega su fecha y la víspera, para que el gráfico muestre escalones y no rampas.
+  for (const m of ms) {
+    if (m.effective_date > first && m.effective_date <= asOf) dates.push(m.effective_date, addDays(m.effective_date, -1));
+  }
+  dates.sort();
+  for (let i = dates.length - 1; i > 0; i--) if (dates[i] === dates[i - 1]) dates.splice(i, 1);
 
   const history: ChartPoint[] = dates.map((t) => {
     let contributed = 0, withdrawn = 0, settled = 0;
