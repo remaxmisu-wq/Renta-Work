@@ -431,3 +431,40 @@ export function aporteDetails(holderId: number, asOf: ISODate = today(), upcomin
       };
     });
 }
+
+// ───────────────────────── Relación con el departamento ─────────────────────────
+
+export interface DeptoEquivalence {
+  projectName: string;
+  unit: string;
+  typology: string;
+  address: string;
+  surfaceM2: number;
+  unitPriceCents: number;
+  pricePerM2Cents: number;
+  priceDate: ISODate;
+  priceSource: string;
+  capitalCents: number;
+  m2: number; // equivalencia orientativa
+  share: number; // fracción de la unidad (0..1)
+}
+
+/** Equivalencia orientativa: capital activo / precio referencial vigente del m². No son metros propios. */
+export function deptoEquivalence(capitalCents: number): DeptoEquivalence | null {
+  const db = getDb();
+  const p = db.prepare("SELECT * FROM projects ORDER BY id LIMIT 1").get() as
+    | { id: number; name: string; unit: string; typology: string; address: string; surface_m2: string; ref_price_cents: number }
+    | undefined;
+  if (!p) return null;
+  const price = db.prepare("SELECT * FROM m2_prices WHERE project_id = ? ORDER BY effective_date DESC, id DESC LIMIT 1").get(p.id) as
+    | { price_cents: number; effective_date: string; source: string }
+    | undefined;
+  if (!price) return null;
+  const surface = Number(String(p.surface_m2).replace(",", "."));
+  const m2 = capitalCents / price.price_cents;
+  return {
+    projectName: p.name, unit: p.unit, typology: p.typology, address: p.address, surfaceM2: surface,
+    unitPriceCents: p.ref_price_cents, pricePerM2Cents: price.price_cents, priceDate: price.effective_date, priceSource: price.source,
+    capitalCents, m2, share: surface ? m2 / surface : 0,
+  };
+}

@@ -3,7 +3,7 @@
 
 import crypto from "node:crypto";
 import { getDb, tx } from "./db";
-import { addMonths, today, type ISODate } from "./dates";
+import { addMonths, formatDate, today, type ISODate } from "./dates";
 import {
   accruedToDate, changeOutstanding, nextSettlementDate, settleDue, splitIntoTokens, type PositionState,
 } from "./engine";
@@ -715,7 +715,7 @@ export function runSettlements(asOf: ISODate = today(), actorId: number | null =
       for (const s of settlements) {
         insertMovement({
           holderId: p.holder_id, positionId: p.id, type: "liquidacion", status: "completada",
-          description: `Liquidación de intereses ${s.final ? "final " : ""}(posición #${p.id}, período ${s.periodIndex + 1})`,
+          description: `Intereses del aporte del ${formatDate(p.activation_date)} · semestre ${s.periodIndex + 1}${s.final ? " (final)" : ""}`,
           effectiveDate: s.periodEnd, amountCents: s.amountCents, availableDelta: s.amountCents,
           idempotencyKey: `liq:${p.id}:${s.periodIndex}`, createdBy: actorId,
           data: { periodStart: s.periodStart, periodEnd: s.periodEnd, exactUsd: s.exactUsd },

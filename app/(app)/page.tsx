@@ -3,7 +3,8 @@ import { resolveHolder, str, type SP } from "@/lib/session";
 import { formatDate, formatDateLong, today } from "@/lib/dates";
 import { holderMovements, portfolio } from "@/lib/ledger";
 import { pct, usd } from "@/lib/money";
-import { aporteDetails, chartData, simplePanel } from "@/lib/views";
+import { aporteDetails, chartData, deptoEquivalence, simplePanel } from "@/lib/views";
+import { DeptoCard } from "@/components/DeptoCard";
 import { AporteList } from "@/components/AporteList";
 import { InterestChart } from "@/components/InterestChart";
 import { DemoBadge, Flash, StatusBadge } from "@/components/ui";
@@ -27,7 +28,9 @@ export default async function PanelPage({ searchParams }: { searchParams: SP }) 
   const chart = chartData(holder.id, asOf);
   const recent = holderMovements(holder.id).slice(0, 5);
   const aportes = aporteDetails(holder.id, asOf);
+  // Los préstamos preexistentes no se atribuyen a la unidad K01.
   const isToken = holder.kind === "token";
+  const depto = isToken && s.capitalCents > 0 ? deptoEquivalence(s.capitalCents) : null;
   const first = holder.name.split(" ")[0];
   const next = s.upcoming[0];
   const q = viewingOther ? `?titular=${holder.id}` : "";
@@ -47,6 +50,7 @@ export default async function PanelPage({ searchParams }: { searchParams: SP }) 
           <h2>{viewingOther ? "Su" : "Tu"} plata</h2>
           <dl className="kv">
             <dt>Pusiste</dt><dd>{usd(s.investedCents)}</dd>
+            {isToken && pf.balances.tokens > 0 && (<><dt>Tokens</dt><dd>{pf.balances.tokens} <small className="faint">(USD 100 c/u)</small></dd></>)}
             <dt>Intereses generados hasta hoy</dt><dd className="amount-interest">+ {usd(s.generatedCents)}</dd>
             {s.collectedCents > 0 && (<><dt>Intereses ya cobrados</dt><dd>− {usd(s.collectedCents)}</dd></>)}
           </dl>
@@ -89,6 +93,8 @@ export default async function PanelPage({ searchParams }: { searchParams: SP }) 
         <h2>Cómo crecen {viewingOther ? "sus" : "tus"} intereses</h2>
         <InterestChart data={chart} />
       </div>
+
+      {depto && <DeptoCard d={depto} own={!viewingOther} />}
 
       {s.availableCents > 0 && !viewingOther && (
         <div className="card section highlight-card">

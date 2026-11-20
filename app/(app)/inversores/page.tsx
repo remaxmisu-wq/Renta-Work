@@ -9,7 +9,7 @@ export default async function InvestorsPage() {
   const user = await requireUser();
   const admin = user.role === "admin";
   const asOf = today();
-  const { rows, others, total } = investorList(asOf, { adminView: admin, includeDemo: true });
+  const { rows, others, total } = investorList(asOf, { adminView: admin, includeDemo: false });
   return (
     <>
       <div className="page-head">
