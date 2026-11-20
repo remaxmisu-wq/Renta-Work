@@ -8,12 +8,9 @@ export const dynamic = "force-dynamic";
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
   const items = [
-    { href: "/", label: "Mi portfolio" },
-    { href: "/movimientos", label: "Movimientos" },
-    { href: "/documentos", label: "Documentos" },
-    { href: "/proyecto", label: "Proyecto" },
+    { href: "/", label: "Mi panel" },
     { href: "/inversores", label: "Inversores" },
-    ...(user.role === "admin" ? [{ href: "/admin", label: "Administración" }] : []),
+    ...(user.role === "admin" ? [{ href: "/admin", label: "Administrar" }] : []),
   ];
   return (
     <>

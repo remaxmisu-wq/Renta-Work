@@ -290,3 +290,94 @@ export function daysUntil(d: ISODate, asOf: ISODate = today()) {
 }
 
 export { addDays };
+
+// ───────────────────────── Vistas simples (panel personal y lista de inversores) ─────────────────────────
+
+export interface SimplePanel {
+  investedCents: number; // lo que puso (aportes externos, sin reinversiones)
+  capitalCents: number; // capital activo hoy
+  generatedCents: number; // intereses generados hasta hoy (liquidados + en curso)
+  collectedCents: number; // intereses ya cobrados
+  availableCents: number; // intereses liquidados para cobrar o reinvertir
+  todayCents: number; // lo que tiene hoy
+  perDayCents: number;
+  perMonthCents: number;
+  inOneYearCents: number; // estimado sin aportes ni retiros
+  rateBps: number;
+  upcoming: { date: ISODate; cents: number }[];
+}
+
+export function simplePanel(holderId: number, asOf: ISODate = today()): SimplePanel {
+  const pf = portfolio(holderId, asOf);
+  const active = pf.positions.filter((p) => p.status === "activa");
+  const rate = active[0]?.rate_bps ?? 1200;
+  const yearly = active.reduce((a, p) => a + (p.outstanding_cents * p.rate_bps) / 10_000, 0);
+  // Próximos cobros: la próxima liquidación de cada posición, agrupada por fecha.
+  const byDate = new Map<string, number>();
+  for (const p of active) {
+    if (!p.nextSettlement) continue;
+    const est = accruedToDate(positionState(p), p.nextSettlement).mul(100).floor().toNumber();
+    byDate.set(p.nextSettlement, (byDate.get(p.nextSettlement) ?? 0) + est);
+  }
+  const upcoming = [...byDate.entries()].sort().map(([date, cents]) => ({ date, cents }));
+  return {
+    investedCents: pf.originalContributionsCents,
+    capitalCents: pf.balances.capitalCents,
+    generatedCents: pf.interestGeneratedCents,
+    collectedCents: pf.interestCollectedCents,
+    availableCents: pf.balances.availableCents,
+    todayCents: pf.totalCents,
+    perDayCents: Math.floor(yearly / 365),
+    perMonthCents: Math.floor(yearly / 12),
+    inOneYearCents: pf.totalCents + Math.floor(yearly),
+    rateBps: rate,
+    upcoming,
+  };
+}
+
+export interface InvestorListRow {
+  holderId: number;
+  name: string;
+  isDemo: boolean;
+  investedCents: number;
+  generatedCents: number;
+  perMonthCents: number;
+}
+
+/** Lista simple de inversores. Respeta el consentimiento salvo para el administrador. */
+export function investorList(asOf: ISODate = today(), opts: { adminView?: boolean; includeDemo?: boolean } = {}) {
+  const holders = getDb()
+    .prepare(`SELECT * FROM holders ${opts.includeDemo ? "" : "WHERE is_demo = 0"} ORDER BY name`)
+    .all() as Holder[];
+  const rows: InvestorListRow[] = [];
+  const others = { count: 0, investedCents: 0, generatedCents: 0, perMonthCents: 0 };
+  let anon = 0;
+  for (const h of holders) {
+    const s = simplePanel(h.id, asOf);
+    if (s.capitalCents === 0 && s.generatedCents === 0) continue;
+    const consent = opts.adminView ? "completo" : h.consent;
+    if (consent === "ninguno") continue;
+    if (consent === "agregado") {
+      others.count++;
+      others.investedCents += s.investedCents;
+      others.generatedCents += s.generatedCents;
+      others.perMonthCents += s.perMonthCents;
+      continue;
+    }
+    rows.push({
+      holderId: h.id,
+      name: consent === "anonimo" ? `Inversor ${String.fromCharCode(65 + anon++)}` : h.name,
+      isDemo: !!h.is_demo,
+      investedCents: s.investedCents,
+      generatedCents: s.generatedCents,
+      perMonthCents: s.perMonthCents,
+    });
+  }
+  const all = [...rows, ...(others.count >= 2 ? [others] : [])];
+  const total = {
+    investedCents: all.reduce((a, r) => a + r.investedCents, 0),
+    generatedCents: all.reduce((a, r) => a + r.generatedCents, 0),
+    perMonthCents: all.reduce((a, r) => a + r.perMonthCents, 0),
+  };
+  return { rows, others: others.count >= 2 ? others : null, total };
+}

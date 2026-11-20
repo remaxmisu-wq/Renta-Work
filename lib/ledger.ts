@@ -763,7 +763,7 @@ export function importLoan(input: {
     });
     const m = insertMovement({
       holderId: h.id, positionId, type: "saldo_inicial_importado", status: "completada",
-      description: `Saldo inicial importado: préstamo al ${input.rateBps / 100}% anual`, effectiveDate: input.baseDate,
+      description: `Aporte (préstamo al ${input.rateBps / 100}% anual)`, effectiveDate: input.baseDate,
       amountCents: input.principalCents, capitalDelta: input.principalCents, externalFlow: -input.principalCents,
       reference: input.reference, idempotencyKey: input.idempotencyKey, createdBy: input.actorId,
     });
