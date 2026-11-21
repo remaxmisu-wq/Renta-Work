@@ -1,6 +1,6 @@
 # Renta Work
 
-Sección de inversiones en dólares para agentes del CRM de Data Work. Cada agente ve su portfolio: capital, Token RW (USD 100 cada uno), intereses en curso y disponibles, movimientos y documentos.
+Sección de inversiones en dólares para agentes del CRM de Data Work. Dos solapas: **Inversión** (la vista general, con todos los inversores) y **Mi panel** (el panel individual y lúdico de cada usuario). Empezá por [`LEEME-PRIMERO.md`](LEEME-PRIMERO.md).
 
 - **Especificación** (pantallas, modelo de datos, reglas de cálculo, decisiones pendientes): [`docs/ESPECIFICACION.md`](docs/ESPECIFICACION.md)
 - **Motor de cálculo** (puro, con tests): [`lib/engine.ts`](lib/engine.ts)

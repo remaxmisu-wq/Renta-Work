@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Ejemplo ilustrativo de Renta Work con un inversor ficticio.">
+<title>Renta Work</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+/* Estética: fondo gris cálido, tarjetas blancas con borde fino, filas etiqueta–importe,
+   totales grandes bajo una línea, destacados con borde verde. Azul marino para capital, verde para intereses. */
+:root {
+  --bg: #f3f2ef;
+  --surface: #ffffff;
+  --ink: #1b2a3f;
+  --muted: #5f6878;
+  --faint: #8b93a1;
+  --line: #e3e1dc;
+  --field: #d9d6cf;
+  --navy: #1f4e8c;
+  --navy-ink: #17345a;
+  --navy-soft: #e8eef7;
+  --green: #217a46;
+  --green-soft: #e9f5ee;
+  --amber: #8a5300;
+  --amber-soft: #fbf0dc;
+  --red: #b42318;
+  --red-soft: #fce6e3;
+  --radius: 18px;
+  --shadow: none;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12161c; --surface: #1a2029; --ink: #e8ecf2; --muted: #a6afbd; --faint: #7f8896; --line: #2a323e; --field: #3a4350;
+    --navy: #8db4ea; --navy-ink: #c4d8f5; --navy-soft: #1d2a3d; --green: #5cc58a; --green-soft: #15291e;
+    --amber: #f0b45c; --amber-soft: #33270f; --red: #f3897f; --red-soft: #3a1a17; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12161c; --surface: #1a2029; --ink: #e8ecf2; --muted: #a6afbd; --faint: #7f8896; --line: #2a323e; --field: #3a4350;
+  --navy: #8db4ea; --navy-ink: #c4d8f5; --navy-soft: #1d2a3d; --green: #5cc58a; --green-soft: #15291e;
+  --amber: #f0b45c; --amber-soft: #33270f; --red: #f3897f; --red-soft: #3a1a17; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-size: 16px; line-height: 1.5; }
+a { color: var(--navy); text-decoration: none; }
+a:hover { text-decoration: underline; }
+h1 { font-size: 1.65rem; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.02em; text-wrap: balance; }
+h2 { font-size: 1.1rem; font-weight: 650; margin: 0 0 14px; text-wrap: balance; }
+h3 { font-size: 1rem; font-weight: 650; margin: 0 0 8px; }
+p { margin: 0 0 12px; }
+small, .muted { color: var(--muted); }
+.faint { color: var(--faint); }
+.num { font-variant-numeric: tabular-nums; }
+.eyebrow { font-size: 0.95rem; font-weight: 650; letter-spacing: 0.08em; text-transform: uppercase; margin: 0 0 14px; }
+
+/* Layout */
+.topbar { background: var(--bg); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 10; }
+.topbar-inner { max-width: 1120px; margin: 0 auto; padding: 14px 16px; display: flex; align-items: center; gap: 16px; }
+.brand { font-weight: 750; letter-spacing: -0.02em; font-size: 1.2rem; color: var(--ink); white-space: nowrap; }
+.brand span { color: var(--green); }
+.brand:hover { text-decoration: none; }
+.nav { display: flex; gap: 6px; overflow-x: auto; flex: 1; scrollbar-width: none; }
+.nav a { padding: 7px 14px; border-radius: 10px; color: var(--muted); white-space: nowrap; font-size: 0.93rem; border: 1px solid transparent; }
+.nav a:hover { background: var(--surface); text-decoration: none; color: var(--ink); border-color: var(--line); }
+.nav a.active { background: var(--navy-soft); color: var(--navy-ink); border-color: var(--navy); font-weight: 600; }
+.user { font-size: 0.85rem; color: var(--muted); white-space: nowrap; display: flex; gap: 8px; align-items: center; margin-left: auto; }
+.main { max-width: 1120px; margin: 0 auto; padding: 28px 16px 64px; }
+.page-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+
+.banner { padding: 10px 16px; font-size: 0.88rem; text-align: center; }
+.banner.pilot { background: var(--amber-soft); color: var(--amber); }
+.banner.demo { background: var(--navy-soft); color: var(--navy-ink); }
+
+/* Tarjetas */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px 26px; }
+.card + .card, .stack > * + * { margin-top: 18px; }
+.grid > .card + .card { margin-top: 0; }
+.grid { display: grid; gap: 18px; }
+.grid.cols-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.grid.stats { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.section { margin-top: 22px; }
+
+/* Total principal: fila con línea arriba e importe grande */
+.hero .label { font-size: 1.05rem; font-weight: 650; }
+.hero .big { font-size: 2.2rem; font-weight: 750; letter-spacing: -0.02em; line-height: 1.1; color: var(--ink); }
+.hero .sub { color: var(--muted); font-size: 0.9rem; margin-top: 10px; }
+.total-row { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+
+.stat .label { font-size: 0.98rem; color: var(--ink); display: flex; align-items: center; gap: 8px; }
+.stat .value { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.01em; margin-top: 6px; }
+.stat .hint { font-size: 0.82rem; color: var(--faint); margin-top: 6px; }
+.stat.capital .value { color: var(--navy-ink); }
+.stat.interest .value { color: var(--green); }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
+.dot.navy { background: var(--navy); }
+.dot.green { background: var(--green); }
+.dot.lightgreen { background: color-mix(in srgb, var(--green) 50%, transparent); }
+.dot.gray { background: var(--faint); }
+
+/* Destacado verde (como el excedente de la calculadora) */
+.highlight-card { border: 1.5px solid var(--green); }
+.highlight-card .up { color: var(--green); font-weight: 700; font-size: 1.4rem; }
+
+/* Botones */
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 11px 18px; border-radius: 10px; border: 1px solid var(--field); background: var(--surface); color: var(--ink); font-weight: 500; font-size: 0.97rem; cursor: pointer; text-decoration: none; min-height: 46px; font-family: inherit; }
+.btn:hover { text-decoration: none; border-color: var(--faint); }
+.btn:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+.btn.primary { border: 2px solid var(--navy); color: var(--navy-ink); font-weight: 600; }
+.btn.green { border: 2px solid var(--green); color: var(--green); background: var(--green-soft); font-weight: 600; }
+.btn.danger { color: var(--red); }
+.btn.small { padding: 6px 12px; min-height: 36px; font-size: 0.87rem; }
+.btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+/* Formularios */
+form.form { display: grid; gap: 16px; }
+label { display: grid; gap: 8px; font-size: 0.93rem; font-weight: 500; color: var(--muted); }
+label .help { font-weight: 400; color: var(--faint); font-size: 0.85rem; }
+input, select, textarea { font: inherit; color: var(--ink); padding: 12px 16px; border: 1.5px solid var(--field); border-radius: 10px; background: var(--surface); min-height: 48px; width: 100%; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--navy); box-shadow: 0 0 0 3px var(--navy-soft); }
+.check { display: flex; gap: 10px; align-items: flex-start; font-weight: 400; color: var(--ink); }
+.check input { width: 20px; min-height: 20px; margin-top: 2px; }
+.inline-form { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+.inline-form > * { flex: 1 1 150px; }
+.inline-form .btn { flex: 0 0 auto; }
+
+/* Avisos */
+.alert { padding: 14px 16px; border-radius: 12px; font-size: 0.93rem; margin-bottom: 18px; border: 1px solid transparent; }
+.alert.error { background: var(--red-soft); color: var(--red); }
+.alert.ok { background: var(--green-soft); color: var(--green); border-color: var(--green); }
+.alert.info { background: var(--navy-soft); color: var(--navy-ink); }
+.alert.warn { background: var(--amber-soft); color: var(--amber); }
+
+/* Etiquetas */
+.badge { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; background: var(--bg); color: var(--muted); border: 1px solid var(--line); white-space: nowrap; vertical-align: middle; }
+.badge.pendiente { background: var(--amber-soft); color: var(--amber); border-color: transparent; }
+.badge.aprobada { background: var(--navy-soft); color: var(--navy-ink); border-color: transparent; }
+.badge.completada { background: var(--green-soft); color: var(--green); border-color: transparent; }
+.badge.rechazada { background: var(--red-soft); color: var(--red); border-color: transparent; }
+.badge.demo { background: var(--navy); color: var(--surface); border-color: transparent; }
+
+/* Tablas y listas */
+.table-wrap { overflow-x: auto; margin: 0 -4px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.93rem; }
+th { text-align: left; font-weight: 500; color: var(--muted); font-size: 0.82rem; padding: 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 12px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+td.r, th.r { text-align: right; }
+tr:last-child td { border-bottom: none; }
+.list { list-style: none; margin: 0; padding: 0; }
+.list li { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; }
+.list li.highlight { border: 1.5px solid var(--green); margin: 4px -14px; padding: 12px 14px; border-radius: 12px; }
+.kv { display: grid; grid-template-columns: 1fr auto; gap: 14px 16px; font-size: 1rem; margin: 0; }
+.kv dt { color: var(--ink); }
+.kv dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Progreso */
+.progress { height: 10px; background: var(--bg); border-radius: 999px; overflow: hidden; border: 1px solid var(--line); }
+.progress > div { height: 100%; background: var(--green); border-radius: 999px; }
+
+/* Filas desplegables */
+details.row { border-bottom: 1px solid var(--line); }
+details.row summary { list-style: none; cursor: pointer; padding: 16px 0; display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+details.row summary::-webkit-details-marker { display: none; }
+details.row[open] > summary .chev { transform: rotate(180deg); }
+.chev { transition: transform .15s; color: var(--muted); display: inline-block; }
+.amount-capital { color: var(--navy-ink); font-weight: 650; }
+.amount-interest { color: var(--green); font-weight: 650; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.83rem; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend svg { flex: none; }
+.chart > svg { width: 100%; height: auto; display: block; }
+
+.empty { text-align: center; padding: 40px 16px; color: var(--muted); }
+.login-wrap { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+.login-card { width: 100%; max-width: 400px; }
+.note { font-size: 0.84rem; color: var(--faint); }
+code { font-size: 0.9em; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+@media (max-width: 640px) {
+  .topbar-inner { flex-wrap: wrap; gap: 8px; }
+  .nav { order: 3; flex-basis: 100%; }
+  .main { padding-top: 18px; }
+  .hide-sm { display: none; }
+  .grid.stats { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .stat .value { font-size: 1.2rem; }
+  .card { padding: 18px; }
+  .hero .big { font-size: 1.8rem; }
+}
+
+.aporte-detail { background: var(--bg); border-radius: 12px; padding: 16px 18px; margin: 0 0 16px; }
+.aporte-detail .list li { padding: 8px 0; }
+details.row summary:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; border-radius: 8px; }
+details.row summary:hover strong { color: var(--navy); }
+.inv-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) 1fr 1fr 1fr; gap: 12px; align-items: center; }
+.inv-grid > span:not(:first-child), .inv-grid > strong:not(:first-child) { text-align: right; }
+.inv-head { font-size: 0.82rem; color: var(--muted); padding: 0 0 10px; border-bottom: 1px solid var(--line); }
+.inv-row { padding: 14px 0; border-bottom: 1px solid var(--line); }
+.inv-total { border-top: 1px solid var(--ink); border-bottom: none; }
+details.row > summary.inv-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) 1fr 1fr 1fr; }
+@media (max-width: 640px) { .inv-grid, details.row > summary.inv-grid { grid-template-columns: minmax(0, 1.2fr) 1fr 1fr; } }
+.depto { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 28px; align-items: center; }
+.depto-figure svg { width: 100%; height: auto; display: block; }
+@media (max-width: 760px) { .depto { grid-template-columns: 1fr; } }
+
+/* Panel divertido */
+.live { background: linear-gradient(135deg, var(--green-soft), var(--surface) 70%); border: 1.5px solid var(--green); }
+.live .big-live { font-size: clamp(2rem, 6vw, 3rem); font-weight: 800; letter-spacing: -0.03em; color: var(--green); line-height: 1.1; display: block; margin: 6px 0 4px; }
+.pulse { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--green); margin-right: 6px; animation: rwpulse 1.6s ease-in-out infinite; vertical-align: middle; }
+@keyframes rwpulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.75); } }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.chip { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font-size: .88rem; }
+.chip strong { color: var(--green); }
+.sim-head { display: flex; justify-content: space-between; font-size: 1.15rem; margin: 8px 0; }
+.sim-range { -webkit-appearance: none; appearance: none; width: 100%; height: 10px; border-radius: 999px; padding: 0; min-height: 0; border: 0;
+  background: linear-gradient(to right, var(--green) var(--fill, 10%), var(--line) var(--fill, 10%)); cursor: pointer; }
+.sim-range:focus { box-shadow: 0 0 0 3px var(--green-soft); }
+.sim-range::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; border-radius: 50%; background: var(--surface); border: 3px solid var(--green); box-shadow: 0 2px 6px rgba(0,0,0,.15); }
+.sim-range::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: var(--surface); border: 3px solid var(--green); }
+.sim-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+.sim-grid > div { background: var(--bg); border-radius: 12px; padding: 10px 12px; display: grid; gap: 2px; }
+.sim-grid span { font-size: 1.15rem; font-weight: 700; }
+.badges { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+.ach { display: grid; justify-items: center; text-align: center; gap: 4px; padding: 14px 8px; border-radius: 14px; background: var(--bg); opacity: .75; }
+.ach.on { opacity: 1; background: var(--green-soft); }
+.ach small { color: var(--muted); font-size: .78rem; }
+.nudge { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; border: 1.5px dashed var(--green); background: var(--green-soft); }
+.tile-on { animation: rwtile .6s ease-out both; animation-delay: calc(var(--i, 0) * 60ms); transform-origin: center; transform-box: fill-box; }
+@keyframes rwtile { from { opacity: .35; transform: scale(.7); } to { opacity: 1; transform: scale(1); } }
+.goal { margin-top: 14px; }
+.goal .progress { height: 12px; }
+@media (prefers-reduced-motion: reduce) { .pulse, .tile-on { animation: none; } }
+
+/* Tabla de posiciones */
+.board { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.board li { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 14px; background: var(--bg); }
+.board li.me { background: var(--navy-soft); box-shadow: inset 0 0 0 1.5px var(--navy); }
+.board .pos { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; background: var(--surface); border: 1.5px solid var(--field); color: var(--muted); }
+.board .pos-1 { background: #f5c542; border-color: #d9a520; color: #3d2c00; }
+.board .pos-2 { background: #d9dde3; border-color: #aab2bd; color: #2b3340; }
+.board .pos-3 { background: #e3a978; border-color: #c07f4b; color: #3a1f08; }
+.board .who, .board .amt { display: grid; gap: 2px; min-width: 0; }
+.board .amt { text-align: right; }
+.board small { color: var(--muted); font-size: .8rem; }
+.you { margin-left: 8px; font-size: .72rem; font-weight: 700; color: var(--navy-ink); background: var(--surface); border: 1px solid var(--navy); padding: 1px 8px; border-radius: 999px; vertical-align: middle; }
+.board-total { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: .93rem; color: var(--muted); }
+.board-total strong { color: var(--ink); }
+@media (max-width: 560px) {
+  .board li { grid-template-columns: 36px minmax(0, 1fr); row-gap: 6px; }
+  .board .amt { grid-column: 2; text-align: left; }
+  .board .pos { width: 32px; height: 32px; }
+}
+
+/* Festejo */
+.celebrate { position: relative; overflow: hidden; padding: 24px 0; }
+.celebrate-card { max-width: 620px; margin: 0 auto; text-align: center; position: relative; z-index: 1; }
+.celebrate-icon { margin: 4px auto 12px; width: 72px; animation: rwpop .6s ease-out both; }
+.celebrate-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 18px; text-align: left; }
+.celebrate-grid > div { background: var(--bg); border-radius: 12px; padding: 12px 14px; display: grid; gap: 2px; }
+.celebrate-grid strong { font-size: 1.1rem; }
+.confetti { position: absolute; inset: 0; pointer-events: none; }
+.confetti i { position: absolute; top: -12px; width: 9px; height: 14px; border-radius: 2px; opacity: .9; animation: rwfall 2.6s ease-in both; }
+@keyframes rwfall { from { transform: translateY(-20px) rotate(0); opacity: 1; } to { transform: translateY(520px) rotate(320deg); opacity: 0; } }
+@keyframes rwpop { 0% { transform: scale(.6); opacity: .4; } 70% { transform: scale(1.1); } 100% { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .confetti { display: none; } .celebrate-icon { animation: none; } }
+@media (max-width: 560px) { .celebrate-grid { grid-template-columns: 1fr; } }
+
+/* Cobrar o reinvertir */
+.live .big-live.num { display: block; }
+.choice-card { position: relative; }
+.choice-card.recommended { border: 2px solid var(--green); }
+.ribbon { position: absolute; top: -12px; left: 20px; background: var(--green); color: var(--surface); font-size: .75rem; font-weight: 700; padding: 3px 10px; border-radius: 999px; letter-spacing: .04em; text-transform: uppercase; }
+
+/* Línea de tiempo de movimientos */
+.tl-month + .tl-month { margin-top: 18px; }
+.tl-head { text-transform: capitalize; color: var(--muted); font-size: .9rem; font-weight: 600; margin: 0 0 8px; }
+.timeline { list-style: none; margin: 0; padding: 0; position: relative; }
+.timeline::before { content: ""; position: absolute; left: 19px; top: 8px; bottom: 8px; width: 2px; background: var(--line); }
+.tl-item { position: relative; display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 10px 0; }
+.tl-icon { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; position: relative; z-index: 1; border: 2px solid var(--surface); }
+.tl-in { background: var(--navy-soft); color: var(--navy-ink); }
+.tl-interest { background: var(--green); color: var(--surface); }
+.tl-reinvest { background: var(--green-soft); color: var(--green); }
+.tl-out { background: var(--bg); color: var(--muted); }
+.tl-fix { background: var(--bg); color: var(--faint); }
+.tl-body { display: grid; gap: 2px; min-width: 0; padding-top: 2px; }
+.tl-title { color: var(--ink); font-weight: 600; }
+.tl-body small { color: var(--muted); }
+.tl-amt { text-align: right; font-weight: 650; display: grid; padding-top: 2px; }
+.tl-amt small { color: var(--muted); font-weight: 400; font-size: .8rem; }
+.tl-milestone .tl-body, .tl-milestone .tl-amt { background: var(--green-soft); }
+.tl-milestone { background: linear-gradient(to right, transparent 0 46px, var(--green-soft) 46px); border-radius: 12px; padding-right: 10px; }
+.tl-milestone .tl-body, .tl-milestone .tl-amt { background: transparent; }
+.tl-milestone .tl-body { padding-left: 6px; }
+
+.topbar-inner, .main, .banner { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.topbar { top: env(safe-area-inset-top, 0px); }
+.view[hidden], .toast[hidden] { display: none !important; }
+.who-switch { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 18px; padding: 10px 12px; border: 1px dashed var(--field); border-radius: 12px; font-size: .9rem; }
+.who-switch a { padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+.who-switch a.on { background: var(--navy-soft); border-color: var(--navy); color: var(--navy-ink); font-weight: 600; }
+.who-switch a:hover { text-decoration: none; border-color: var(--faint); }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 12px 18px; border-radius: 12px; font-size: .9rem; max-width: calc(100% - 32px); z-index: 20; }
+</style>
+</head>
+<body>
+<div class="banner pilot">Ejemplo ilustrativo con un inversor ficticio. Probá invertir y reinvertir: no se guarda nada. No constituye una oferta de inversión.</div>
+<header class="topbar"><div class="topbar-inner">
+  <a href="#panel-demo" class="brand">Renta<span>Work</span></a>
+  <nav class="nav" aria-label="Secciones">
+    <a href="#panel-demo" data-tab="panel">Mi panel</a>
+  </nav>
+</div></header>
+<main class="main">
+<section class="view" id="v-panel-demo" data-user="demo" hidden><div class="page-head"><div><h1>Hola, Inversor <span class="badge demo" title="Dato de demostración, no real">DEMO</span></h1><p class="muted" style="margin:0">Así está tu inversión al 21 nov 2026.</p></div></div><div class="card live"><div class="total-row" style="align-items:flex-start"><div><span class="muted"><span class="pulse" aria-hidden="true"></span>Tu plata ya generó</span><span class="big-live"><span data-ticker="" data-base="12032" data-perday="32.87671232876713" data-t0="1795219200000"><span data-value="" class="num">USD 120,32</span></span></span><span class="muted">de intereses, y sigue sumando ahora mismo.</span></div><div style="text-align:right"><span class="muted">Hoy tenés</span><div class="num" style="font-size:1.9rem;font-weight:750">USD 1.120,32</div><span class="muted num">Pusiste USD 1.000,00 · 10 tokens</span></div></div><div class="chips"><span class="chip"><strong>+USD 0,32</strong> por día</span><span class="chip"><strong>+USD 10,00</strong> por mes</span><span class="chip"><strong>+USD 120,00</strong> por año</span><span class="chip">Próximo cobro <strong>20/05/2027</strong> ≈ USD 59,50</span></div></div><div class="section"><div class="card nudge"><div><strong>¡Tus intereses ya alcanzan para 1 token más!</strong><p style="margin:4px 0 0">Si reinvertís USD 100, tu plata genera <strong>USD 1,00 más por mes</strong>, sin poner un peso nuevo.</p></div><a class="btn green" href="#demo-intereses">Reinvertir</a></div></div><div class="grid cols-2 section"><div class="card sim" data-sim="" data-rate="1200" data-capital="100000" data-m2price="100000"><h2 style="margin-bottom:4px">¿Y si sumás más?</h2><p class="muted" style="margin-top:0">Mové la barra y mirá qué pasa.</p><div class="sim-head"><strong data-out="tokens">10 tokens</strong><strong class="num" data-out="amount">USD 1.000</strong></div><input type="range" min="1" max="100" step="1" aria-label="Cantidad de tokens a sumar" class="sim-range" value="10"><div class="sim-grid"><div><small>Ganarías por mes</small><span class="num amount-interest" data-out="month">+ USD 10,00</span></div><div><small>Por año</small><span class="num amount-interest" data-out="year">+ USD 120,00</span></div><div><small>Tu total por mes</small><span class="num" data-out="total-month">USD 20,00</span></div><div><small>Equivale a</small><span class="num" data-out="m2">2,00 m²</span></div></div><a class="btn green" style="width:100%;margin-top:16px" data-out="cta" href="#demo-invertir">Quiero invertir USD 1.000</a><p class="note" style="margin-top:10px;margin-bottom:0">Estimado al 12% anual pactado. No es una garantía de pago.</p></div><div class="card"><h2>Próximos cobros de intereses</h2><ul class="list"><li class="highlight"><span><strong class="num">20/05/2027</strong><small> · el más cercano</small></span><span class="num amount-interest">≈ USD 59,50</span></li><li class=""><span><strong class="num">20/11/2027</strong></span><span class="num amount-interest">≈ USD 60,49</span></li></ul><p class="note" style="margin-bottom:0">Cada aporte cobra intereses cada 6 meses desde su fecha.</p></div></div><div class="card section"><h2>Cómo crecen tus intereses</h2><div class="chart"><svg viewBox="0 0 720 230" role="img" aria-label="Intereses generados: USD 120,32 hoy; estimado en un año USD 240,32."><line x1="16" x2="704" y1="200" y2="200" stroke="var(--line)"></line><path d="M16,200 L16.0,200.0 L44.2,193.5 L73.4,186.8 L102.6,180.1 L128.9,174.0 L158.1,167.3 L185.4,161.1 L186.4,160.9 L215.5,154.2 L243.8,147.7 L272.9,141.0 L302.1,134.3 L330.4,127.8 L358.6,121.3 L359.5,121.1 L360.5,120.8 L360.47058823529414,200 Z" fill="var(--green)" opacity="0.18"></path><path d="M16.0,200.0 L44.2,193.5 L73.4,186.8 L102.6,180.1 L128.9,174.0 L158.1,167.3 L185.4,161.1 L186.4,160.9 L215.5,154.2 L243.8,147.7 L272.9,141.0 L302.1,134.3 L330.4,127.8 L358.6,121.3 L359.5,121.1 L360.5,120.8" fill="none" stroke="var(--green)" stroke-width="2.5"></path><path d="M360.5,120.8 L388.7,114.4 L417.9,107.7 L447.1,101.0 L473.4,94.9 L502.6,88.2 L530.8,81.7 L560.0,75.0 L588.2,68.5 L617.4,61.8 L646.6,55.1 L674.8,48.6 L704.0,41.9" fill="none" stroke="var(--green)" stroke-width="2" stroke-dasharray="6 6" opacity="0.8"></path><circle cx="360.47058823529414" cy="120.84712446896202" r="5" fill="var(--green)"></circle><text x="360.47058823529414" y="108.84712446896202" text-anchor="middle" font-size="13" font-weight="600" fill="var(--ink)">Hoy USD 120</text><circle cx="704" cy="41.904761904761926" r="4" fill="var(--surface)" stroke="var(--green)" stroke-width="2"></circle><text x="700" y="29.904761904761926" text-anchor="end" font-size="13" fill="var(--muted)">En un año ≈ USD 240</text><text x="16" y="222" font-size="12" fill="var(--faint)" text-anchor="start">nov 25</text><text x="360.47058823529414" y="222" font-size="12" fill="var(--faint)" text-anchor="middle">nov 26</text><text x="447.0588235294117" y="222" font-size="12" fill="var(--faint)" text-anchor="middle">feb 27</text><text x="530.8235294117648" y="222" font-size="12" fill="var(--faint)" text-anchor="middle">may 27</text><text x="617.4117647058823" y="222" font-size="12" fill="var(--faint)" text-anchor="middle">ago 27</text><text x="704" y="222" font-size="12" fill="var(--faint)" text-anchor="end">nov 27</text></svg><div class="legend"><span><svg width="18" height="6"><line x1="0" x2="18" y1="3" y2="3" stroke="var(--green)" stroke-width="2.5"></line></svg> Intereses generados</span><span><svg width="18" height="6"><line x1="0" x2="18" y1="3" y2="3" stroke="var(--green)" stroke-width="2" stroke-dasharray="4 3"></line></svg> Estimado si no agregás ni retirás plata</span></div></div></div><div class="card section"><h2 style="margin-bottom:4px">Tu plata, en metros del depto</h2><p class="muted" style="margin-top:0">Pipi Collection · Unidad K01 · 2 ambientes · 77,88 m² · Repetto 929, Hurlingham, Buenos Aires</p><div class="depto"><div class="depto-figure"><svg viewBox="0 0 386 176" role="img" aria-label="La unidad tiene 77,88 m². Tu capital equivale a 1,00 m²."><g><rect x="0" y="0" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect><rect class="tile-on" style="--i:0" x="0" y="0" width="26" height="26" rx="4" fill="var(--green)"></rect></g><g><rect x="30" y="0" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="60" y="0" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="90" y="0" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="120" y="0" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="150" y="0" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="180" y="0" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="210" y="0" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="240" y="0" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="270" y="0" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="300" y="0" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="330" y="0" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="360" y="0" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="0" y="30" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="30" y="30" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="60" y="30" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="90" y="30" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="120" y="30" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="150" y="30" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="180" y="30" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="210" y="30" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="240" y="30" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="270" y="30" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="300" y="30" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="330" y="30" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="360" y="30" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="0" y="60" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="30" y="60" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="60" y="60" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="90" y="60" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="120" y="60" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="150" y="60" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="180" y="60" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="210" y="60" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="240" y="60" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="270" y="60" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="300" y="60" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="330" y="60" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="360" y="60" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="0" y="90" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="30" y="90" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="60" y="90" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="90" y="90" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="120" y="90" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="150" y="90" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="180" y="90" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="210" y="90" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="240" y="90" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="270" y="90" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="300" y="90" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="330" y="90" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="360" y="90" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="0" y="120" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="30" y="120" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="60" y="120" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="90" y="120" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="120" y="120" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="150" y="120" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="180" y="120" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="210" y="120" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="240" y="120" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="270" y="120" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="300" y="120" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="330" y="120" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="360" y="120" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="0" y="150" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="30" y="150" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="60" y="150" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="90" y="150" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="120" y="150" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="150" y="150" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="180" y="150" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="210" y="150" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="240" y="150" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="270" y="150" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="300" y="150" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="330" y="150" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g><g><rect x="360" y="150" width="26" height="26" rx="4" fill="var(--bg)" stroke="var(--line)"></rect></g></svg><div class="legend"><span><i class="dot green"></i> Lo que equivale tu capital</span><span><i class="dot gray"></i> 1 cuadradito = 1 m² de la unidad</span></div></div><div><p style="font-size:1.05rem">Tu capital de <strong>USD 1.000,00</strong> equivale hoy, de forma orientativa, a</p><p class="num" style="font-size:2rem;font-weight:750;margin:0 0 4px;color:var(--green)">1,00 m²</p><p class="muted">Es el 1,28 % de la unidad.</p><div class="goal"><div class="total-row" style="font-size:0.93rem"><strong>Próximo objetivo: 2 m²</strong><span class="muted">te faltan 10 tokens</span></div><div class="progress" style="margin-top:6px"><div style="width:50%"></div></div></div><dl class="kv" style="font-size:0.93rem;margin-top:16px"><dt>Valor de referencia del m²</dt><dd>USD 1.000,00</dd><dt>Precio de referencia de la unidad</dt><dd>USD 77.880,00</dd><dt>Valores al</dt><dd>20/11/2026</dd></dl></div></div><ul class="note" style="margin:16px 0 0;padding-left:18px"><li>Es una referencia para dimensionar la inversión: no son metros de tu propiedad.</li><li>Si sube el valor del m², la equivalencia baja. Tus dólares y tokens no cambian por eso.</li><li>Si el departamento se valoriza, la inversión no aumenta automáticamente: rinde el 12 % anual pactado.</li></ul></div><div class="card section"><div class="total-row" style="margin-bottom:12px"><h2 style="margin:0">Tus logros</h2><span class="muted num">4 de 6</span></div><div class="badges"><div class="ach on" title="20/11/2025"><svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="var(--green)" stroke="var(--green)" stroke-width="2" stroke-dasharray="0"></circle><path d="M12 20.5l5.5 5.5L28 15" fill="none" stroke="var(--surface)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path></svg><strong>Primer aporte</strong><small>20/11/2025</small></div><div class="ach on" title="Ya liquidaste intereses"><svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="var(--green)" stroke="var(--green)" stroke-width="2" stroke-dasharray="0"></circle><path d="M12 20.5l5.5 5.5L28 15" fill="none" stroke="var(--surface)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path></svg><strong>Primer cobro</strong><small>Ya liquidaste intereses</small></div><div class="ach " title="Reinvertí tus intereses"><svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="var(--bg)" stroke="var(--field)" stroke-width="2" stroke-dasharray="4 3"></circle><path d="M20 13v8M20 26v.5" stroke="var(--faint)" stroke-width="3" stroke-linecap="round"></path></svg><strong>Primera reinversión</strong><small>Reinvertí tus intereses</small></div><div class="ach on" title="Con USD 1.000 invertidos"><svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="var(--green)" stroke="var(--green)" stroke-width="2" stroke-dasharray="0"></circle><path d="M12 20.5l5.5 5.5L28 15" fill="none" stroke="var(--surface)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path></svg><strong>1 m² del depto</strong><small>Con USD 1.000 invertidos</small></div><div class="ach on" title="Desde tu primer aporte"><svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="var(--green)" stroke="var(--green)" stroke-width="2" stroke-dasharray="0"></circle><path d="M12 20.5l5.5 5.5L28 15" fill="none" stroke="var(--surface)" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path></svg><strong>1 año invirtiendo</strong><small>Desde tu primer aporte</small></div><div class="ach " title="Con USD 5.000 invertidos"><svg viewBox="0 0 40 40" width="40" height="40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="var(--bg)" stroke="var(--field)" stroke-width="2" stroke-dasharray="4 3"></circle><path d="M20 13v8M20 26v.5" stroke="var(--faint)" stroke-width="3" stroke-linecap="round"></path></svg><strong>5 m² del depto</strong><small>Con USD 5.000 invertidos</small></div></div></div><div class="card section"><h2 style="margin-bottom:4px">Tus aportes</h2><p class="note" style="margin-top:0">Tocá cada fecha para ver el detalle y cuándo cobra intereses.</p><div><details class="row"><summary><span><strong class="num">20/11/2025</strong><span class="muted"> · Aporte</span><br><span class="num amount-capital">USD 1.000,00</span></span><span style="text-align:right"><span class="num amount-interest">+ USD 120,32</span><br><small>generados</small> <span class="chev" aria-hidden="true">▾</span></span></summary><div class="aporte-detail"><dl class="kv"><dt>Fecha en que se puso la plata</dt><dd>20/11/2025</dd><dt>Monto</dt><dd>USD 1.000,00</dd><dt>Tasa</dt><dd>12% anual</dd><dt>Días invertidos</dt><dd>366</dd><dt>Intereses generados hasta hoy</dt><dd class="amount-interest">+ USD 120,32</dd><dt>Genera por mes</dt><dd>USD 10,00</dd><dt>Vence</dt><dd>20/11/2027</dd></dl><h3 style="margin-top:18px">Cobros de intereses (cada 6 meses desde la fecha del aporte)</h3><ul class="list"><li><span class="num">20/05/2026 <small>· liquidado</small></span><span class="num amount-interest">USD 59,50</span></li><li><span class="num">20/11/2026 <small>· liquidado</small></span><span class="num amount-interest">USD 60,50</span></li><li><span class="num">20/05/2027 <small>· estimado</small></span><span class="num amount-interest">≈ USD 59,50</span></li><li><span class="num">20/11/2027 <small>· estimado</small></span><span class="num amount-interest">≈ USD 60,49</span></li></ul></div></details></div></div><div class="card section"><div class="total-row" style="margin-bottom:8px"><h2 style="margin:0">Últimos movimientos</h2><a class="note" href="#mov-demo">Ver todos</a></div><ul class="list"><li><span>Intereses del aporte del 20/11/2025 · semestre 2<br><small>20/11/2026</small></span><span style="text-align:right"><span class="num amount-interest">USD 60,50</span></span></li><li><span>Intereses del aporte del 20/11/2025 · semestre 1<br><small>20/05/2026</small></span><span style="text-align:right"><span class="num amount-interest">USD 59,50</span></span></li><li><span>Compra por aporte: 10 tokens<br><small>20/11/2025</small></span><span style="text-align:right"><span class="num ">USD 1.000,00</span></span></li></ul></div><p class="note section">Cada aporte genera 12% anual y cobra intereses cada 6 meses desde su fecha. Es una tasa pactada, no una garantía de pago. Los estimados suponen que no se agrega ni se retira plata.</p></section>
+<section class="view" id="v-mov-demo" data-user="demo" hidden><div class="page-head"><div><a class="note" href="#panel-demo">← Volver</a><h1>Tus movimientos</h1><p class="muted" style="margin:0">La historia de tu plata, de lo más nuevo a lo más viejo.</p></div><a class="btn small" href="#" data-disabled="1">Descargar (CSV)</a></div><details class="card" style="margin-bottom:18px"><summary style="cursor:pointer;font-weight:600">Filtrar</summary><form class="inline-form" style="margin-top:12px" method="get"><label>Desde<input type="date" name="desde"></label><label>Hasta<input type="date" name="hasta"></label><label>Tipo<select name="tipo"><option value="" selected="">Todos</option><option value="compra_aporte">Compra de tokens por aporte</option><option value="compra_comision">Compra desde comisión</option><option value="saldo_inicial_importado">Saldo inicial importado</option><option value="liquidacion">Liquidación de intereses</option><option value="reinversion">Reinversión</option><option value="cobro_intereses">Cobro de intereses</option><option value="rescate">Rescate de tokens</option><option value="devolucion_capital">Devolución de capital</option><option value="reverso">Reverso</option><option value="ajuste">Corrección</option></select></label><label>Estado<select name="estado"><option value="" selected="">Todos</option><option value="pendiente">Pendiente</option><option value="aprobada">Aprobada</option><option value="completada">Completada</option><option value="rechazada">Rechazada</option></select></label><button class="btn primary" type="submit">Filtrar</button></form></details><div class="card"><section class="tl-month"><h3 class="tl-head">noviembre 2026</h3><ol class="timeline"><li class="tl-item tl-milestone"><span class="tl-icon tl-interest" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5l2.1 4.3 4.7.7-3.4 3.3.8 4.7L12 15.8 7.8 18l.8-4.7L5.2 10l4.7-.7z"></path></svg></span><div class="tl-body"><a class="tl-title" href="#mov-demo">¡Cobro de intereses!</a><small>20/11/2026 · Intereses del aporte del 20/11/2025 · semestre 2</small></div><span class="tl-amt num amount-interest">+ USD 60,50</span></li></ol></section><section class="tl-month"><h3 class="tl-head">mayo 2026</h3><ol class="timeline"><li class="tl-item tl-milestone"><span class="tl-icon tl-interest" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5l2.1 4.3 4.7.7-3.4 3.3.8 4.7L12 15.8 7.8 18l.8-4.7L5.2 10l4.7-.7z"></path></svg></span><div class="tl-body"><a class="tl-title" href="#mov-demo">¡Cobro de intereses!</a><small>20/05/2026 · Intereses del aporte del 20/11/2025 · semestre 1</small></div><span class="tl-amt num amount-interest">+ USD 59,50</span></li></ol></section><section class="tl-month"><h3 class="tl-head">noviembre 2025</h3><ol class="timeline"><li class="tl-item "><span class="tl-icon tl-in" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v12M6 12h12"></path></svg></span><div class="tl-body"><a class="tl-title" href="#mov-demo">Pusiste plata</a><small>20/11/2025 · Compra por aporte: 10 tokens</small></div><span class="tl-amt num amount-capital">+ USD 1.000,00<small>10 tokens</small></span></li></ol></section><p class="note" style="margin-bottom:0">Las solicitudes pendientes no cambian tus saldos. Los movimientos nunca se borran: si hay un error se corrige con un movimiento nuevo.</p></div></section>
+<section class="view" id="v-demo-invertir" data-user="demo" hidden><div class="page-head"><div><a class="note" href="#panel-demo">← Volver</a><h1>Sumá plata a Renta Work</h1><p class="muted" style="margin:0">Elegí cuántos tokens querés y mirá cuánto vas a ganar.</p></div></div><div class="grid cols-2"><div><form class="form" enctype="multipart/form-data" method="POST"><input type="hidden" name="$ACTION_ID_4094eec259b5b99a791fcfb0565b837931c2bfa9f7"><input type="hidden" name="idem" value="7031bd7e-439a-4331-be34-18c67f796c25"><div class="card sim" data-sim="" data-rate="1200" data-capital="100000" data-m2price="100000"><h2 style="margin-bottom:4px">¿Cuántos tokens sumás?</h2><p class="muted" style="margin-top:0">Cada token es USD 100. Mové la barra.</p><div class="sim-head"><strong data-out="tokens">10 tokens</strong><strong class="num" data-out="amount">USD 1.000</strong></div><input type="range" min="1" max="500" step="1" aria-label="Cantidad de tokens a sumar" class="sim-range" name="tokens" value="10" style="--fill: 1.8036072144288577%;"><div class="sim-grid"><div><small>Ganarías por mes</small><span class="num amount-interest" data-out="month">+ USD 10,00</span></div><div><small>Por año</small><span class="num amount-interest" data-out="year">+ USD 120,00</span></div><div><small>Tu total por mes</small><span class="num" data-out="total-month">USD 20,00</span></div><div><small>Equivale a</small><span class="num" data-out="m2">2,00 m²</span></div></div><p class="note" style="margin-top:10px;margin-bottom:0">Estimado al 12% anual pactado. No es una garantía de pago.</p></div><div class="card form"><label>¿De dónde sale la plata?<select name="source"><option value="aporte">Transferencia en dólares</option></select></label><label class="check"><input type="checkbox" required="" name="accept"><span>Leí las condiciones: 12% anual, cobro de intereses cada 6 meses desde la activación, plazo de 24 meses (propuesta pendiente de confirmación). La tasa pactada no es una garantía de pago.</span></label><button type="submit" class="btn green">Confirmar inversión</button><p class="note" style="margin:0">Empieza a generar intereses el día que se confirmen los fondos.</p></div></form></div><div class="card"><h2>Condiciones de la emisión</h2><dl class="kv"><dt>Emisión</dt><dd>Emisión de demostración</dd><dt>Tasa nominal anual</dt><dd>12%</dd><dt>Liquidación</dt><dd>Cada 6 meses por posición</dd><dt>Plazo</dt><dd>24 meses (propuesta)</dd><dt>Vencimiento si se activa hoy</dt><dd>21/11/2028</dd><dt>Cupo disponible</dt><dd>USD 299.000,00</dd></dl><h3 style="margin-top:16px">Devolución anticipada</h3><p class="muted">A definir por contrato.</p><h3>Condiciones de salida</h3><p class="muted">A definir por contrato.</p></div></div><div class="card section"><h2>Comisiones en dólares disponibles</h2><p class="muted">No tenés comisiones en dólares disponibles. Las comisiones en pesos y las pendientes no participan de Renta Work.</p><p class="note" style="margin-top:12px">Ejemplo: con USD 2.000 disponibles podés cobrar USD 1.500 e invertir USD 500 = 5 tokens. La inversión queda vinculada a la rendición original y se activa al confirmar los fondos.</p></div></section>
+<section class="view" id="v-demo-intereses" data-user="demo" hidden><div class="page-head"><div><a class="note" href="#panel-demo">← Volver</a><h1>Tus intereses</h1><p class="muted" style="margin:0">Los intereses que ya se liquidaron los podés cobrar o reinvertir. Elegí qué hacer.</p></div></div><div class="card live" style="text-align:center"><span class="muted">Tenés para usar</span><span class="big-live num">USD 120,00</span><span class="muted">Mientras no los uses, estos intereses no generan más intereses.</span></div><div class="grid cols-2 section choice"><div class="card choice-card recommended"><span class="ribbon">Recomendado</span><h2>Reinvertir</h2><p style="font-size:1.05rem">Sumás <strong>1 token</strong> (USD 100) y tu plata genera <strong class="amount-interest">USD 1,00 más por mes</strong>, todos los meses.</p><dl class="kv" style="font-size:0.93rem"><dt>En un año, eso es</dt><dd class="amount-interest">≈ + USD 12,00</dd><dt>Te queda para cobrar</dt><dd>USD 20,00</dd><dt>Empieza a generar</dt><dd>Hoy, 21/11/2026</dd><dt>Vence</dt><dd>21/11/2028 (propuesta)</dd></dl><form class="form" style="margin-top:16px" enctype="multipart/form-data" method="POST"><input type="hidden" name="$ACTION_ID_40311b1508a4a524151c09b949489c714c38303d07"><input type="hidden" name="idem" value="31271393-a07c-4426-8937-6b66fea097a3"><input type="hidden" name="tokens" value="1"><label class="check"><input type="checkbox" required="" name="accept"><span>Confirmo la reinversión. No cambia el vencimiento de mis otros aportes.</span></label><button type="submit" class="btn green">Reinvertir USD 100</button></form></div><div class="card choice-card"><h2>Cobrar</h2><p style="font-size:1.05rem">Te llevás la plata hoy. Tu capital sigue igual y sigue generando lo mismo.</p><form class="form" enctype="multipart/form-data" method="POST"><input type="hidden" name="$ACTION_ID_40c755cf63a8bcf685b04e8037339cadb81b437171"><input type="hidden" name="idem" value="a67ac38a-5334-426a-9912-e3da35b205b8"><label>¿Cuánto querés cobrar? (USD)<input inputmode="decimal" required="" name="amount" value="120,00"></label><button type="submit" class="btn">Pedir el cobro</button></form><p class="note" style="margin-top:8px;margin-bottom:0">Es una solicitud: queda pendiente hasta que se haga el pago.</p></div></div><div class="card section"><div class="total-row"><span><strong>Reinversión automática: desactivada</strong><br><small>En cada cobro, los bloques completos de USD 100 se convierten solos en tokens. Lo que sobra queda para cobrar.</small></span><form class="inline-form" style="flex:0 1 auto" enctype="multipart/form-data" method="POST"><input type="hidden" name="$ACTION_ID_40eed01045f68ddc408a58809325ad84ffbde8eaaa"><input type="hidden" name="enable" value="1"><label class="check" style="flex:1 1 220px"><input type="checkbox" required="" name="accept"><span>Autorizo reinvertir automáticamente</span></label><button type="submit" class="btn green">Activar</button></form></div></div></section>
+<section class="view" id="v-demo-listo" data-user="demo" hidden><div class="celebrate"><div class="confetti" aria-hidden="true"><i style="left:0%;background:var(--green);animation-delay:0s;transform:rotate(0deg)"></i><i style="left:37%;background:#f5c542;animation-delay:0.12s;transform:rotate(29deg)"></i><i style="left:74%;background:var(--navy);animation-delay:0.24s;transform:rotate(58deg)"></i><i style="left:11%;background:#e3a978;animation-delay:0.36s;transform:rotate(87deg)"></i><i style="left:48%;background:#7cc7a2;animation-delay:0.48s;transform:rotate(116deg)"></i><i style="left:85%;background:var(--green);animation-delay:0.6s;transform:rotate(145deg)"></i><i style="left:22%;background:#f5c542;animation-delay:0.72s;transform:rotate(174deg)"></i><i style="left:59%;background:var(--navy);animation-delay:0s;transform:rotate(203deg)"></i><i style="left:96%;background:#e3a978;animation-delay:0.12s;transform:rotate(232deg)"></i><i style="left:33%;background:#7cc7a2;animation-delay:0.24s;transform:rotate(261deg)"></i><i style="left:70%;background:var(--green);animation-delay:0.36s;transform:rotate(290deg)"></i><i style="left:7%;background:#f5c542;animation-delay:0.48s;transform:rotate(319deg)"></i><i style="left:44%;background:var(--navy);animation-delay:0.6s;transform:rotate(348deg)"></i><i style="left:81%;background:#e3a978;animation-delay:0.72s;transform:rotate(377deg)"></i><i style="left:18%;background:#7cc7a2;animation-delay:0s;transform:rotate(406deg)"></i><i style="left:55%;background:var(--green);animation-delay:0.12s;transform:rotate(435deg)"></i><i style="left:92%;background:#f5c542;animation-delay:0.24s;transform:rotate(464deg)"></i><i style="left:29%;background:var(--navy);animation-delay:0.36s;transform:rotate(493deg)"></i><i style="left:66%;background:#e3a978;animation-delay:0.48s;transform:rotate(522deg)"></i><i style="left:3%;background:#7cc7a2;animation-delay:0.6s;transform:rotate(551deg)"></i><i style="left:40%;background:var(--green);animation-delay:0.72s;transform:rotate(580deg)"></i><i style="left:77%;background:#f5c542;animation-delay:0s;transform:rotate(609deg)"></i><i style="left:14%;background:var(--navy);animation-delay:0.12s;transform:rotate(638deg)"></i><i style="left:51%;background:#e3a978;animation-delay:0.24s;transform:rotate(667deg)"></i><i style="left:88%;background:#7cc7a2;animation-delay:0.36s;transform:rotate(696deg)"></i><i style="left:25%;background:var(--green);animation-delay:0.48s;transform:rotate(725deg)"></i><i style="left:62%;background:#f5c542;animation-delay:0.6s;transform:rotate(754deg)"></i><i style="left:99%;background:var(--navy);animation-delay:0.72s;transform:rotate(783deg)"></i></div><div class="card celebrate-card"><div class="celebrate-icon" aria-hidden="true"><svg viewBox="0 0 64 64" width="72" height="72"><circle cx="32" cy="32" r="30" fill="var(--green)"></circle><path d="M19 33l9 9 17-19" fill="none" stroke="var(--surface)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><h1>¡Pediste sumar 10 tokens!</h1><p class="muted" style="font-size:1.05rem">Son USD 1.000. Empiezan a generar intereses el día que se confirmen los fondos.</p><div class="celebrate-grid"><div><small>Vas a ganar de más por mes</small><strong class="amount-interest num">+ USD 10,00</strong></div><div><small>Vas a tener</small><strong class="num">20 tokens</strong></div><div><small>Tu plata va a generar</small><strong class="num">USD 20,00 por mes</strong></div><div><small>Equivale a</small><strong class="num">2,00 m² del depto</strong></div></div><div class="alert ok" style="margin-top:16px">Logro desbloqueado: <strong>2 m² del depto</strong></div><div class="actions" style="justify-content:center;margin-top:20px"><a class="btn green" href="#panel-demo">Volver a mi panel</a></div><p class="note" style="margin-top:16px;margin-bottom:0">La solicitud queda pendiente hasta que el administrador confirme los fondos.</p></div></div></section>
+<section class="view" id="v-demo-listo-reinv" data-user="demo" hidden><div class="celebrate"><div class="confetti" aria-hidden="true"><i style="left:0%;background:var(--green);animation-delay:0s;transform:rotate(0deg)"></i><i style="left:37%;background:#f5c542;animation-delay:0.12s;transform:rotate(29deg)"></i><i style="left:74%;background:var(--navy);animation-delay:0.24s;transform:rotate(58deg)"></i><i style="left:11%;background:#e3a978;animation-delay:0.36s;transform:rotate(87deg)"></i><i style="left:48%;background:#7cc7a2;animation-delay:0.48s;transform:rotate(116deg)"></i><i style="left:85%;background:var(--green);animation-delay:0.6s;transform:rotate(145deg)"></i><i style="left:22%;background:#f5c542;animation-delay:0.72s;transform:rotate(174deg)"></i><i style="left:59%;background:var(--navy);animation-delay:0s;transform:rotate(203deg)"></i><i style="left:96%;background:#e3a978;animation-delay:0.12s;transform:rotate(232deg)"></i><i style="left:33%;background:#7cc7a2;animation-delay:0.24s;transform:rotate(261deg)"></i><i style="left:70%;background:var(--green);animation-delay:0.36s;transform:rotate(290deg)"></i><i style="left:7%;background:#f5c542;animation-delay:0.48s;transform:rotate(319deg)"></i><i style="left:44%;background:var(--navy);animation-delay:0.6s;transform:rotate(348deg)"></i><i style="left:81%;background:#e3a978;animation-delay:0.72s;transform:rotate(377deg)"></i><i style="left:18%;background:#7cc7a2;animation-delay:0s;transform:rotate(406deg)"></i><i style="left:55%;background:var(--green);animation-delay:0.12s;transform:rotate(435deg)"></i><i style="left:92%;background:#f5c542;animation-delay:0.24s;transform:rotate(464deg)"></i><i style="left:29%;background:var(--navy);animation-delay:0.36s;transform:rotate(493deg)"></i><i style="left:66%;background:#e3a978;animation-delay:0.48s;transform:rotate(522deg)"></i><i style="left:3%;background:#7cc7a2;animation-delay:0.6s;transform:rotate(551deg)"></i><i style="left:40%;background:var(--green);animation-delay:0.72s;transform:rotate(580deg)"></i><i style="left:77%;background:#f5c542;animation-delay:0s;transform:rotate(609deg)"></i><i style="left:14%;background:var(--navy);animation-delay:0.12s;transform:rotate(638deg)"></i><i style="left:51%;background:#e3a978;animation-delay:0.24s;transform:rotate(667deg)"></i><i style="left:88%;background:#7cc7a2;animation-delay:0.36s;transform:rotate(696deg)"></i><i style="left:25%;background:var(--green);animation-delay:0.48s;transform:rotate(725deg)"></i><i style="left:62%;background:#f5c542;animation-delay:0.6s;transform:rotate(754deg)"></i><i style="left:99%;background:var(--navy);animation-delay:0.72s;transform:rotate(783deg)"></i></div><div class="card celebrate-card"><div class="celebrate-icon" aria-hidden="true"><svg viewBox="0 0 64 64" width="72" height="72"><circle cx="32" cy="32" r="30" fill="var(--green)"></circle><path d="M19 33l9 9 17-19" fill="none" stroke="var(--surface)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><h1>¡Reinvertiste 1 token!</h1><p class="muted" style="font-size:1.05rem">Tus intereses ya se convirtieron en capital y empiezan a generar desde hoy.</p><div class="celebrate-grid"><div><small>Ganás de más por mes</small><strong class="amount-interest num">+ USD 1,00</strong></div><div><small>Ahora tenés</small><strong class="num">11 tokens</strong></div><div><small>Tu plata genera</small><strong class="num">USD 11,00 por mes</strong></div><div><small>Equivale a</small><strong class="num">1,10 m² del depto</strong></div></div><div class="actions" style="justify-content:center;margin-top:20px"><a class="btn green" href="#panel-demo">Volver a mi panel</a></div></div></div></section>
+</main>
+<div class="toast" id="toast" hidden></div>
+<script>/* Renta Work: interacciones livianas sin dependencias.
+   - [data-ticker]: intereses que suman en vivo.
+   - [data-sim]: simulador "¿Y si sumás más?".
+   Funciona sobre el HTML que ya viene renderizado; sin JS se ve el estado inicial. */
+(function () {
+  function usd(cents, dec) {
+    var d = dec == null ? 2 : dec;
+    var v = Math.max(0, cents) / 100;
+    var s = v.toFixed(d).split(".");
+    s[0] = s[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return "USD " + s[0] + (d ? "," + s[1] : "");
+  }
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function ticker(el) {
+    if (el.__rw) return; el.__rw = 1;
+    var base = Number(el.getAttribute("data-base"));
+    var perDay = Number(el.getAttribute("data-perday"));
+    var t0 = Number(el.getAttribute("data-t0"));
+    var out = el.querySelector("[data-value]") || el;
+    // Decimales suficientes para que el último dígito cambie más o menos cada segundo.
+    var perSecUsd = perDay / 100 / 86400;
+    var dec = perSecUsd > 0 ? Math.min(7, Math.max(2, Math.ceil(-Math.log10(perSecUsd)))) : 2;
+    function tick() {
+      var cents = base + perDay * Math.max(0, Date.now() - t0) / 86400000;
+      out.textContent = usd(cents, dec);
+    }
+    tick();
+    setInterval(tick, reduce ? 5000 : 120);
+  }
+
+  function sim(el) {
+    if (el.__rw) return; el.__rw = 1;
+    var rate = Number(el.getAttribute("data-rate")) / 10000;
+    var capital = Number(el.getAttribute("data-capital"));
+    var m2price = Number(el.getAttribute("data-m2price"));
+    var input = el.querySelector("input[type=range]");
+    function set(name, text) { var o = el.querySelector('[data-out="' + name + '"]'); if (o) o.textContent = text; }
+    function update() {
+      var t = Number(input.value);
+      var add = t * 10000;
+      set("tokens", t + (t === 1 ? " token" : " tokens"));
+      el.querySelectorAll("[data-out-tokens]").forEach(function (o) { o.textContent = t; });
+      set("amount", usd(add, 0));
+      set("month", "+ " + usd(Math.floor(add * rate / 12)));
+      set("year", "+ " + usd(Math.floor(add * rate)));
+      set("total-month", usd(Math.floor((capital + add) * rate / 12)));
+      if (m2price) set("m2", ((capital + add) / m2price).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " m²");
+      var cta = el.querySelector('[data-out="cta"]');
+      if (cta) { cta.textContent = "Quiero invertir " + usd(add, 0); if (cta.getAttribute("href") && cta.getAttribute("href").indexOf("/invertir") === 0) cta.setAttribute("href", "/invertir?tokens=" + t); }
+      input.style.setProperty("--fill", ((t - input.min) / (input.max - input.min) * 100) + "%");
+    }
+    input.addEventListener("input", update);
+    update();
+  }
+
+  function scan(root) {
+    (root.querySelectorAll ? root : document).querySelectorAll("[data-ticker]").forEach(ticker);
+    (root.querySelectorAll ? root : document).querySelectorAll("[data-sim]").forEach(sim);
+  }
+  function start() {
+    scan(document);
+    new MutationObserver(function () { scan(document); }).observe(document.body, { childList: true, subtree: true });
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
+})();
+</script>
+<script>
+(function () {
+  var views = Array.prototype.slice.call(document.querySelectorAll('.view'));
+  var cur = 'panel-demo';
+  function show() {
+    var h = (location.hash || '#panel-demo').slice(1);
+    if (!document.getElementById('v-' + h)) h = 'panel-demo';
+    cur = h;
+    views.forEach(function (v) { v.hidden = v.id !== 'v-' + h; });
+    document.querySelectorAll('[data-tab]').forEach(function (a) { a.classList.add('active'); });
+    window.scrollTo(0, 0);
+  }
+  window.addEventListener('hashchange', show);
+  var t, toast = document.getElementById('toast');
+  function note(msg) { toast.textContent = msg; toast.hidden = false; clearTimeout(t); t = setTimeout(function () { toast.hidden = true; }, 3500); }
+  document.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var f = e.target;
+    if (cur === 'demo-invertir') { location.hash = 'demo-listo'; return; }
+    if (cur === 'demo-intereses' && f.closest('.recommended')) { location.hash = 'demo-listo-reinv'; return; }
+    note('Es un ejemplo: no se guarda nada.');
+  }, true);
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[data-disabled]');
+    if (a) { e.preventDefault(); note('Disponible en la app.'); }
+  });
+  show();
+})();
+</script>
+</body>
+</html>
