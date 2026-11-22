@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { addMonths, daysBetween } from "../lib/dates";
 import {
   accrueUsd, accruedToDate, changeOutstanding, nextSettlementDate, nextTokenProgress,
-  settleDue, splitIntoTokens, theoreticalEffectiveAnnual, xirr, m2Equivalent, type PositionState,
+  settleDue, splitIntoTokens, theoreticalEffectiveAnnual, xirr, m2Equivalent, snowball, type PositionState,
 } from "../lib/engine";
 import { usd, parseUsdInput } from "../lib/money";
 
@@ -150,5 +150,16 @@ describe("formato", () => {
   it("lee importes", () => {
     expect(parseUsdInput("1.234,56")).toBe(123_456);
     expect(parseUsdInput("500")).toBe(50_000);
+  });
+});
+
+describe("bola de nieve", () => {
+  it("reinvertir en tokens enteros rinde más que cobrar", () => {
+    const pts = snowball(100_000, 1200, 5); // USD 1.000
+    const last = pts[pts.length - 1];
+    expect(last.collectCents).toBe(160_000); // 1.000 + 10 × 60
+    expect(last.reinvestCents).toBeGreaterThan(last.collectCents);
+    expect(last.reinvestCapitalCents % 10_000).toBe(0);
+    expect(pts).toHaveLength(11);
   });
 });

@@ -25,6 +25,9 @@ export interface Holder {
   consent_at: string | null;
   auto_reinvest: number;
   is_demo: number;
+  goal_kind: "capital" | "ingreso" | null;
+  goal_cents: number | null;
+  commission_pct: number;
 }
 
 export interface PositionRow {
@@ -90,6 +93,8 @@ export interface Emission {
   exit_terms: string | null;
   open: number;
   is_demo: number;
+  issuer: string | null;
+  costs: string | null;
 }
 
 export class RwError extends Error {}
@@ -691,6 +696,49 @@ export function setAutoReinvest(holderId: number, enabled: boolean, actorId: num
     .prepare("UPDATE holders SET auto_reinvest = ?, auto_reinvest_at = datetime('now') WHERE id = ?")
     .run(enabled ? 1 : 0, holderId);
   audit(actorId, enabled ? "reinversion.auto.activar" : "reinversion.auto.desactivar", "holder", holderId);
+}
+
+/** Meta personal: llegar a un capital o a un ingreso mensual estimado. */
+export function setGoal(holderId: number, kind: "capital" | "ingreso" | null, cents: number | null, actorId: number) {
+  if (kind && (!cents || cents <= 0)) throw new RwError("Ingresá un monto para tu meta.");
+  getDb().prepare("UPDATE holders SET goal_kind = ?, goal_cents = ? WHERE id = ?").run(kind, kind ? cents : null, holderId);
+  audit(actorId, kind ? "meta.definir" : "meta.borrar", "holder", holderId, { kind, cents });
+}
+
+export const COMMISSION_PCTS = [0, 5, 10, 20, 30];
+
+/** Porcentaje de cada comisión en dólares que se invierte solo, en tokens enteros. */
+export function setCommissionPct(holderId: number, pct: number, actorId: number) {
+  const h = getHolder(holderId);
+  assertTokenHolder(h);
+  if (!COMMISSION_PCTS.includes(pct)) throw new RwError("Porcentaje inválido.");
+  getDb().prepare("UPDATE holders SET commission_pct = ? WHERE id = ?").run(pct, holderId);
+  audit(actorId, "comision.auto.porcentaje", "holder", holderId, { pct });
+}
+
+/**
+ * Cuando una comisión en USD queda disponible, invierte sola el porcentaje elegido por el agente
+ * (en tokens enteros). Queda como solicitud pendiente, igual que una inversión manual.
+ */
+export function applyAutoCommission(commissionId: number): Movement | null {
+  const db = getDb();
+  const c = db.prepare("SELECT * FROM commissions WHERE id = ?").get(commissionId) as Commission | undefined;
+  if (!c || c.status !== "disponible") return null;
+  const h = getHolderByUser(c.user_id);
+  if (!h || h.kind !== "token" || !h.commission_pct) return null;
+  const tokens = Math.floor((c.amount_cents * h.commission_pct) / 100 / TOKEN_CENTS);
+  if (tokens < 1) return null;
+  try {
+    return requestInvestment({
+      holderId: h.id, tokens, source: "comision", commissionId: c.id, actorId: c.user_id, idempotencyKey: `autocom:${c.id}`,
+    });
+  } catch (e) {
+    if (e instanceof RwError) {
+      audit(null, "comision.auto.no_aplicada", "commission", c.id, { motivo: e.message });
+      return null;
+    }
+    throw e;
+  }
 }
 
 // ───────────────────────── Liquidaciones ─────────────────────────

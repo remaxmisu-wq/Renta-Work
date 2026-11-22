@@ -11,7 +11,7 @@ import { today } from "@/lib/dates";
 import {
   adjustAvailable, approveMovement, audit, completeMovement, getHolderByUser, importLoan, registerInterestPayment,
   reinvest, rejectMovement, requestInvestment, requestPayout, requestRedemption, returnCapital, reverseMovement,
-  runSettlements, RwError, setAutoReinvest, splitCommission,
+  runSettlements, RwError, setAutoReinvest, splitCommission, applyAutoCommission, setGoal, setCommissionPct,
 } from "@/lib/ledger";
 import { parseUsdInput, TOKEN_CENTS, usd } from "@/lib/money";
 
@@ -223,16 +223,16 @@ export async function saveEmissionAction(fd: FormData) {
     const vals = [
       s(fd, "name"), Math.round(Number(s(fd, "rate").replace(",", ".")) * 100), s(fd, "term") ? Number(s(fd, "term")) : null,
       s(fd, "term_status") === "confirmado" ? "confirmado" : "propuesta", cap, s(fd, "cap_reinv") === "on" ? 1 : 0,
-      s(fd, "early") || null, s(fd, "exit") || null, s(fd, "open") === "on" ? 1 : 0,
+      s(fd, "early") || null, s(fd, "exit") || null, s(fd, "open") === "on" ? 1 : 0, s(fd, "issuer") || null, s(fd, "costs") || null,
     ];
     if (id) {
       db.prepare(`UPDATE emissions SET name=?, rate_bps=?, term_months=?, term_status=?, cap_cents=?, cap_includes_reinvestments=?,
-        early_redemption_terms=?, exit_terms=?, open=? WHERE id=?`).run(...vals, id);
+        early_redemption_terms=?, exit_terms=?, open=?, issuer=?, costs=? WHERE id=?`).run(...vals, id);
       audit(a.id, "emision.editar", "emission", id, vals);
     } else {
       const project = db.prepare("SELECT id FROM projects ORDER BY id LIMIT 1").get() as { id: number } | undefined;
       const r = db.prepare(`INSERT INTO emissions (name, rate_bps, term_months, term_status, cap_cents, cap_includes_reinvestments,
-        early_redemption_terms, exit_terms, open, project_id) VALUES (?,?,?,?,?,?,?,?,?,?)`).run(...vals, project?.id ?? null);
+        early_redemption_terms, exit_terms, open, issuer, costs, project_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`).run(...vals, project?.id ?? null);
       audit(a.id, "emision.crear", "emission", Number(r.lastInsertRowid), vals);
     }
   });
@@ -257,6 +257,7 @@ export async function commissionAction(fd: FormData) {
     const r = getDb().prepare("INSERT INTO commissions (user_id, rendicion_ref, description, amount_cents, status) VALUES (?,?,?,?,?)")
       .run(Number(s(fd, "user")), s(fd, "ref"), s(fd, "description") || null, cents, s(fd, "status") === "pendiente" ? "pendiente" : "disponible");
     audit(a.id, "comision.crear", "commission", Number(r.lastInsertRowid), { cents, ref: s(fd, "ref") });
+    applyAutoCommission(Number(r.lastInsertRowid));
   });
 }
 
@@ -265,6 +266,7 @@ export async function commissionStatusAction(fd: FormData) {
   return run("/admin/comisiones", "Estado actualizado.", () => {
     getDb().prepare("UPDATE commissions SET status = ? WHERE id = ?").run(s(fd, "status"), Number(s(fd, "id")));
     audit(a.id, "comision.estado", "commission", Number(s(fd, "id")), { status: s(fd, "status") });
+    applyAutoCommission(Number(s(fd, "id")));
   });
 }
 
@@ -296,5 +298,42 @@ export async function uploadDocumentAction(fd: FormData) {
     const r = getDb().prepare("INSERT INTO documents (holder_id, title, kind, file_path, mime, created_by) VALUES (?,?,?,?,?,?)")
       .run(Number(s(fd, "holder")), s(fd, "title") || file.name, s(fd, "kind") || "otro", name, file.type || "application/octet-stream", a.id);
     audit(a.id, "documento.cargar", "document", Number(r.lastInsertRowid), { title: s(fd, "title") });
+  });
+}
+
+// ───────── Meta, comisión automática, novedades de obra ─────────
+
+export async function goalAction(fd: FormData) {
+  return run("/", "Meta guardada. ¡A por ella!", async () => {
+    const { user, holder } = await myHolderId();
+    if (s(fd, "clear") === "1") return setGoal(holder.id, null, null, user.id);
+    const kind = s(fd, "kind") === "ingreso" ? "ingreso" : "capital";
+    return setGoal(holder.id, kind, parseUsdInput(s(fd, "amount")), user.id);
+  });
+}
+
+export async function commissionPctAction(fd: FormData) {
+  const pct = Number(s(fd, "pct"));
+  return run("/", pct ? `Listo: el ${pct}% de cada comisión en dólares se va a invertir solo.` : "Desactivaste la inversión automática de comisiones.", async () => {
+    const { user, holder } = await myHolderId();
+    return setCommissionPct(holder.id, pct, user.id);
+  });
+}
+
+export async function projectUpdateAction(fd: FormData) {
+  const a = await requireAdmin();
+  return run("/admin/emisiones", "Novedad de obra publicada.", () => {
+    if (!s(fd, "title") || !s(fd, "date")) throw new RwError("Completá fecha y título.");
+    const r = getDb().prepare("INSERT INTO project_updates (project_id, update_date, title, body, image_url, created_by) VALUES (?,?,?,?,?,?)")
+      .run(Number(s(fd, "project")), s(fd, "date"), s(fd, "title"), s(fd, "body") || null, s(fd, "image") || null, a.id);
+    audit(a.id, "obra.novedad", "project_update", Number(r.lastInsertRowid), { title: s(fd, "title") });
+  });
+}
+
+export async function projectImageAction(fd: FormData) {
+  const a = await requireAdmin();
+  return run("/admin/emisiones", "Foto del proyecto actualizada.", () => {
+    getDb().prepare("UPDATE projects SET image_url = ? WHERE id = ?").run(s(fd, "image") || null, Number(s(fd, "project")));
+    audit(a.id, "proyecto.foto", "project", Number(s(fd, "project")), { image: s(fd, "image") });
   });
 }

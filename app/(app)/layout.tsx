@@ -3,6 +3,7 @@ import { requireUser } from "@/lib/auth";
 import { realOperationsEnabled } from "@/lib/ledger";
 import Script from "next/script";
 import { Nav } from "@/components/Nav";
+import { BottomNav } from "@/components/BottomNav";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </header>
       <main className="main">{children}</main>
+      <BottomNav />
       <Script src="/rw-enhance.js" strategy="afterInteractive" />
     </>
   );

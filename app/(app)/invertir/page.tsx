@@ -3,6 +3,7 @@ import { resolveHolder, type SP } from "@/lib/session";
 import { formatDate, addMonths, today } from "@/lib/dates";
 import { availableCommissions, capUsage, commissionFreeCents, currentEmission, ledgerBalances } from "@/lib/ledger";
 import { currentM2PriceCents } from "@/lib/views";
+import { getDb } from "@/lib/db";
 import { Simulator } from "@/components/Fun";
 import { pct, usd, TOKEN_CENTS } from "@/lib/money";
 import { SubmitButton } from "@/components/SubmitButton";
@@ -16,6 +17,7 @@ export default async function InvestPage({ searchParams }: { searchParams: SP })
   const cap = e ? capUsage(e.id) : null;
   const commissions = availableCommissions(user.id);
   const maxByCap = cap?.remainingCents == null ? 0 : Math.floor(cap.remainingCents / TOKEN_CENTS);
+  const project = getDb().prepare("SELECT name FROM projects ORDER BY id LIMIT 1").get() as { name: string } | undefined;
   const initial = Math.min(Math.max(1, maxByCap), Math.max(1, Number(typeof sp.tokens === "string" ? sp.tokens : 10) || 10));
 
   if (!holder || holder.kind !== "token") {
@@ -24,7 +26,7 @@ export default async function InvestPage({ searchParams }: { searchParams: SP })
 
   return (
     <>
-      <PageHead title="Sumá plata a Renta Work" back="/" sub="Elegí cuántos tokens querés y mirá cuánto vas a ganar." />
+      <PageHead title="Sumar inversión" back="/" sub="Elegí cuántos tokens querés, leé la ficha y enviá tu solicitud." />
       <Flash sp={sp} />
       {!e ? <div className="card empty">No hay una emisión abierta en este momento.</div> : (
         <div className="grid cols-2">
@@ -37,7 +39,7 @@ export default async function InvestPage({ searchParams }: { searchParams: SP })
               <form action={investAction} className="form">
                 <IdemKey />
                 <Simulator capitalCents={ledgerBalances(holder.id).capitalCents} rateBps={e.rate_bps} m2PriceCents={currentM2PriceCents()} ctaHref={null}
-                  title="¿Cuántos tokens sumás?" subtitle="Cada token es USD 100. Mové la barra." formName="tokens"
+                  title="¿Cuántos tokens sumás?" subtitle="Cada token es USD 100. Mové la barra y mirá cuánto ganarías." formName="tokens" follow
                   maxTokens={Math.min(maxByCap, 500)} initialTokens={initial} ctaNote="Estimado al 12% anual pactado. No es una garantía de pago." />
                 <div className="card form">
                 <label>¿De dónde sale la plata?
@@ -49,28 +51,37 @@ export default async function InvestPage({ searchParams }: { searchParams: SP })
                   </select>
                 </label>
                 <label className="check"><input type="checkbox" name="accept" required />
-                  <span>Leí las condiciones: {pct(e.rate_bps)} anual, cobro de intereses cada 6 meses desde la activación{e.term_months ? `, plazo de ${e.term_months} meses${e.term_status === "propuesta" ? " (propuesta pendiente de confirmación)" : ""}` : ""}. La tasa pactada no es una garantía de pago.</span>
+                  <span>Leí "lo que tenés que saber". Entiendo que el {pct(e.rate_bps)} anual es una tasa pactada, no una garantía de pago.</span>
                 </label>
-                <SubmitButton className="btn green">Confirmar inversión</SubmitButton>
-                <p className="note" style={{ margin: 0 }}>Empieza a generar intereses el día que se confirmen los fondos.</p>
+                <SubmitButton className="btn primary">Enviar solicitud de inversión</SubmitButton>
+                <p className="note" style={{ margin: 0 }}>Es una solicitud: empieza a generar intereses el día que se confirmen los fondos.</p>
                 </div>
               </form>
             )}
           </div>
-          <div className="card">
-            <h2>Condiciones de la emisión</h2>
-            <dl className="kv">
-              <dt>Emisión</dt><dd>{e.name}</dd>
-              <dt>Tasa nominal anual</dt><dd>{pct(e.rate_bps)}</dd>
-              <dt>Liquidación</dt><dd>Cada 6 meses por posición</dd>
-              <dt>Plazo</dt><dd>{e.term_months ? `${e.term_months} meses${e.term_status === "propuesta" ? " (propuesta)" : ""}` : "A definir"}</dd>
-              <dt>Vencimiento si se activa hoy</dt><dd>{e.term_months ? formatDate(addMonths(today(), e.term_months)) : "—"}</dd>
-              <dt>Cupo disponible</dt><dd>{cap?.remainingCents == null ? "Sin definir" : usd(cap.remainingCents)}</dd>
+          <div className="card ficha">
+            <h2 style={{ marginBottom: 4 }}>Antes de confirmar: lo que tenés que saber</h2>
+            <p className="muted" style={{ marginTop: 0 }}>Todo en palabras simples. Si algo todavía no está definido, lo decimos.</p>
+            <dl className="ficha-list">
+              <dt>¿Qué estás contratando?</dt>
+              <dd>Tokens de USD 100. Cada token es una parte de un préstamo para construir {project?.name ?? "el proyecto"}. No es comprar un pedazo del departamento.</dd>
+              <dt>¿Quién responde?</dt>
+              <dd>{e.issuer || <span className="pending">A definir por contrato (razón social y responsable).</span>}</dd>
+              <dt>¿Cómo rinde?</dt>
+              <dd>{pct(e.rate_bps)} anual en dólares, sobre lo que pusiste. Por cada USD 100, alrededor de USD 1 por mes. {e.costs ? `Costos: ${e.costs}.` : <span className="pending">Costos: a confirmar.</span>}</dd>
+              <dt>¿Cuándo cobrás?</dt>
+              <dd>Los intereses, cada 6 meses desde el día en que se activa tu aporte. El capital, al vencimiento{e.term_months ? `: ${e.term_months} meses${e.term_status === "propuesta" ? " (plazo propuesto, falta confirmarlo)" : ""}, o sea el ${formatDate(addMonths(today(), e.term_months))} si se activa hoy` : ""}.</dd>
+              <dt className="ficha-key">¿Cómo salís antes?</dt>
+              <dd className="ficha-key">{e.early_redemption_terms || "A definir por contrato. Hoy no hay una forma garantizada de retirar el capital antes del vencimiento."}</dd>
+              <dt>¿Qué podés consultar?</dt>
+              <dd>Tu contrato, tus comprobantes y las novedades de la obra, en tu panel.</dd>
             </dl>
-            <h3 style={{ marginTop: 16 }}>Devolución anticipada</h3>
-            <p className="muted">{e.early_redemption_terms || "A definir por contrato."}</p>
-            <h3>Condiciones de salida</h3>
-            <p className="muted">{e.exit_terms || "A definir por contrato."}</p>
+            <h3 style={{ marginTop: 18 }}>¿Qué pasa después de confirmar?</h3>
+            <ol className="steps">
+              <li><strong>Recibimos tu solicitud.</strong> Todavía no se mueve plata.</li>
+              <li><strong>Hacés la transferencia</strong> (o se toma la parte de tu comisión) y se confirma.</li>
+              <li><strong>Tu inversión se activa</strong> y empieza a generar intereses ese mismo día.</li>
+            </ol>
           </div>
         </div>
       )}

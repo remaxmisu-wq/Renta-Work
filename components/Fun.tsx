@@ -12,15 +12,15 @@ export function LiveTicker({ baseCents, perDayCents, asOf }: { baseCents: number
   );
 }
 
-export function Simulator({ capitalCents, rateBps, m2PriceCents, ctaHref, ctaNote, initialTokens = 10, title = "¿Y si sumás más?", subtitle = "Mové la barra y mirá qué pasa.", formName, maxTokens = 100 }: {
+export function Simulator({ capitalCents, rateBps, m2PriceCents, ctaHref, ctaNote, initialTokens = 10, title = "¿Y si sumás más?", subtitle = "Mové la barra y mirá cuánto ganarías.", formName, maxTokens = 100, follow = false }: {
   capitalCents: number; rateBps: number; m2PriceCents: number | null; ctaHref: string | null; ctaNote?: string; initialTokens?: number;
-  title?: string; subtitle?: string; formName?: string; maxTokens?: number;
+  title?: string; subtitle?: string; formName?: string; maxTokens?: number; follow?: boolean;
 }) {
   const add = initialTokens * 10_000;
   const rate = rateBps / 10_000;
   const m2 = m2PriceCents ? ((capitalCents + add) / m2PriceCents).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : null;
   return (
-    <div className="card sim" data-sim="" data-rate={rateBps} data-capital={capitalCents} data-m2price={m2PriceCents ?? 0}>
+    <div className="card sim" data-sim="" data-follow={follow ? "" : undefined} data-rate={rateBps} data-capital={capitalCents} data-m2price={m2PriceCents ?? 0}>
       <h2 style={{ marginBottom: 4 }}>{title}</h2>
       <p className="muted" style={{ marginTop: 0 }}>{subtitle}</p>
       <div className="sim-head">
@@ -29,13 +29,13 @@ export function Simulator({ capitalCents, rateBps, m2PriceCents, ctaHref, ctaNot
       </div>
       <input type="range" name={formName} min={1} max={Math.max(1, maxTokens)} step={1} defaultValue={initialTokens} aria-label="Cantidad de tokens a sumar" className="sim-range" />
       <div className="sim-grid">
-        <div><small>Ganarías por mes</small><span className="num amount-interest" data-out="month">+ {usd(Math.floor((add * rate) / 12))}</span></div>
+        <div><small>Ganarías de más por mes</small><span className="num amount-interest" data-out="month">+ {usd(Math.floor((add * rate) / 12))}</span></div>
         <div><small>Por año</small><span className="num amount-interest" data-out="year">+ {usd(Math.floor(add * rate))}</span></div>
-        <div><small>{capitalCents ? "Tu total por mes" : "Por mes en total"}</small><span className="num" data-out="total-month">{usd(Math.floor(((capitalCents + add) * rate) / 12))}</span></div>
-        {m2 && <div><small>Equivale a</small><span className="num" data-out="m2">{m2} m²</span></div>}
+        <div><small>{capitalCents ? "En total generaría por mes" : "Por mes en total"}</small><span className="num" data-out="total-month">{usd(Math.floor(((capitalCents + add) * rate) / 12))}</span></div>
+        {m2 && <div><small>Equivalencia orientativa</small><span className="num" data-out="m2">{m2} m²</span></div>}
       </div>
       {ctaHref ? (
-        <Link href={`${ctaHref}?tokens=${initialTokens}`} className="btn green" style={{ width: "100%", marginTop: 16 }} data-out="cta">Quiero invertir {usd(add).replace(/,00$/, "")}</Link>
+        <Link href={`${ctaHref}?tokens=${initialTokens}`} className="btn primary" style={{ width: "100%", marginTop: 16 }} data-out="cta">Quiero invertir {usd(add).replace(/,00$/, "")}</Link>
       ) : null}
       <p className="note" style={{ marginTop: 10, marginBottom: 0 }}>{ctaNote ?? `Estimado al ${rateBps / 100}% anual pactado. No es una garantía de pago.`}</p>
     </div>

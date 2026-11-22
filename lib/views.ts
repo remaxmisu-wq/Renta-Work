@@ -521,3 +521,22 @@ export function currentM2PriceCents(): number | null {
   const r = getDb().prepare("SELECT price_cents FROM m2_prices ORDER BY effective_date DESC, id DESC LIMIT 1").get() as { price_cents: number } | undefined;
   return r?.price_cents ?? null;
 }
+
+/** Datos para "Dónde está tu plata": proyecto, quién responde, m² orientativos y novedades de obra. */
+export function whereData(capitalCents: number, opts: { isToken: boolean; isDemo: boolean }) {
+  const db = getDb();
+  const p = db.prepare("SELECT * FROM projects ORDER BY id LIMIT 1").get() as
+    | { id: number; name: string; unit: string; typology: string; address: string; developer: string; surface_m2: string; image_url: string | null }
+    | undefined;
+  if (!p) return null;
+  const e = currentEmission(opts.isDemo);
+  const eq = opts.isToken && capitalCents > 0 ? deptoEquivalence(capitalCents) : null;
+  const updates = (db.prepare("SELECT * FROM project_updates WHERE project_id = ? ORDER BY update_date DESC, id DESC LIMIT 3").all(p.id) as
+    { update_date: string; title: string; body: string | null; image_url: string | null }[])
+    .map((u) => ({ date: u.update_date, title: u.title, body: u.body, image: u.image_url }));
+  return {
+    projectName: p.name, unit: p.unit, typology: p.typology, address: p.address, developer: p.developer,
+    surfaceM2: Number(String(p.surface_m2).replace(",", ".")), imageUrl: p.image_url, issuer: e?.issuer ?? null,
+    m2: eq?.m2 ?? null, share: eq?.share ?? null, updates,
+  };
+}

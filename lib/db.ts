@@ -174,6 +174,35 @@ CREATE TABLE IF NOT EXISTS audit_log (
 
 let instance: Database.Database | null = null;
 
+// Columnas y tablas agregadas después de la primera versión. Idempotente.
+const MIGRATIONS = [
+  "ALTER TABLE holders ADD COLUMN goal_kind TEXT CHECK (goal_kind IN ('capital','ingreso'))", // meta elegida por el usuario
+  "ALTER TABLE holders ADD COLUMN goal_cents INTEGER",
+  "ALTER TABLE holders ADD COLUMN commission_pct INTEGER NOT NULL DEFAULT 0", // % de cada comisión en USD que se invierte solo
+  "ALTER TABLE emissions ADD COLUMN issuer TEXT", // quién responde (razón social)
+  "ALTER TABLE emissions ADD COLUMN costs TEXT", // costos, si los hay
+  `CREATE TABLE IF NOT EXISTS project_updates (
+     id INTEGER PRIMARY KEY,
+     project_id INTEGER NOT NULL REFERENCES projects(id),
+     update_date TEXT NOT NULL,
+     title TEXT NOT NULL,
+     body TEXT,
+     image_url TEXT,
+     created_by INTEGER REFERENCES users(id),
+     created_at TEXT NOT NULL DEFAULT (datetime('now'))
+   )`,
+];
+
+function migrate(db: Database.Database) {
+  for (const sql of MIGRATIONS) {
+    try {
+      db.exec(sql);
+    } catch (e) {
+      if (!/duplicate column/i.test(String(e))) throw e;
+    }
+  }
+}
+
 export function dbPath(): string {
   return process.env.DATABASE_PATH || path.join(process.cwd(), "data", "renta-work.db");
 }
@@ -184,6 +213,7 @@ export function getDb(): Database.Database {
   if (p !== ":memory:") fs.mkdirSync(path.dirname(p), { recursive: true });
   instance = new Database(p);
   instance.exec(SCHEMA);
+  migrate(instance);
   return instance;
 }
 

@@ -196,3 +196,18 @@ describe("préstamos importados", () => {
     expect(ledgerBalances(h).availableCents).toBe(2 * Math.floor(57_330 * 0.12 * 184 / 365 * 100));
   });
 });
+
+describe("comisión automática y metas", () => {
+  it("invierte solo el porcentaje elegido de una comisión disponible", async () => {
+    setup();
+    const { setCommissionPct, applyAutoCommission, setGoal } = await import("../lib/ledger");
+    setCommissionPct(holder, 10, agent);
+    const db = getDb();
+    const c = Number(db.prepare("INSERT INTO commissions (user_id, rendicion_ref, amount_cents) VALUES (?, 'R-9', 250000)").run(agent).lastInsertRowid);
+    const m = applyAutoCommission(c)!; // 10 % de USD 2.500 = USD 250 → 2 tokens
+    expect(m.tokens).toBe(2);
+    expect(applyAutoCommission(c)!.id).toBe(m.id); // no duplica
+    setGoal(holder, "capital", 500_000, agent);
+    expect((db.prepare("SELECT goal_kind, goal_cents FROM holders WHERE id = ?").get(holder) as { goal_kind: string }).goal_kind).toBe("capital");
+  });
+});

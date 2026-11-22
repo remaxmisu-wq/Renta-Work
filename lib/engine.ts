@@ -184,3 +184,31 @@ export function m2Equivalent(capitalCents: number, pricePerM2Cents: number): num
   if (!pricePerM2Cents) return null;
   return capitalCents / pricePerM2Cents;
 }
+
+export interface SnowballPoint {
+  semester: number; // 0 = hoy
+  collectCents: number; // si cobrás: capital + intereses cobrados acumulados
+  reinvestCents: number; // si reinvertís: capital + intereses sin reinvertir
+  reinvestCapitalCents: number;
+}
+
+/**
+ * "La bola de nieve": compara cobrar siempre los intereses contra reinvertirlos en tokens enteros.
+ * Usa semestres de medio año exacto (6 % por semestre) para que sea fácil de entender.
+ */
+export function snowball(capitalCents: number, rateBps: number, years = 5): SnowballPoint[] {
+  const perSemester = rateBps / 10_000 / 2;
+  const pts: SnowballPoint[] = [{ semester: 0, collectCents: capitalCents, reinvestCents: capitalCents, reinvestCapitalCents: capitalCents }];
+  let collected = 0;
+  let cap = capitalCents;
+  let loose = 0; // intereses que no llegan a un token
+  for (let i = 1; i <= years * 2; i++) {
+    collected += Math.floor(capitalCents * perSemester);
+    loose += Math.floor(cap * perSemester);
+    const tokens = Math.floor(loose / TOKEN_CENTS);
+    cap += tokens * TOKEN_CENTS;
+    loose -= tokens * TOKEN_CENTS;
+    pts.push({ semester: i, collectCents: capitalCents + collected, reinvestCents: cap + loose, reinvestCapitalCents: cap });
+  }
+  return pts;
+}

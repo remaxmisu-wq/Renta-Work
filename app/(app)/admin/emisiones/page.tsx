@@ -1,4 +1,4 @@
-import { m2PriceAction, saveEmissionAction } from "@/app/actions";
+import { m2PriceAction, projectImageAction, projectUpdateAction, saveEmissionAction } from "@/app/actions";
 import { getDb } from "@/lib/db";
 import { formatDate, today } from "@/lib/dates";
 import { capUsage, type Emission } from "@/lib/ledger";
@@ -22,6 +22,8 @@ function EmissionForm({ e }: { e?: Emission }) {
       </div>
       <label className="check"><input type="checkbox" name="cap_reinv" defaultChecked={e ? !!e.cap_includes_reinvestments : true} /><span>Las reinversiones consumen cupo</span></label>
       <label className="check"><input type="checkbox" name="open" defaultChecked={e ? !!e.open : true} /><span>Emisión abierta a nuevas compras y reinversiones</span></label>
+      <label>Quién responde (razón social y responsable contractual)<input name="issuer" defaultValue={e?.issuer ?? ""} placeholder="A definir" /></label>
+      <label>Costos para el inversor<input name="costs" defaultValue={e?.costs ?? ""} placeholder="Ej.: sin costos de entrada ni de salida" /></label>
       <label>Devolución anticipada<textarea name="early" rows={2} defaultValue={e?.early_redemption_terms ?? ""} placeholder="A definir por contrato" /></label>
       <label>Condiciones de salida<textarea name="exit" rows={2} defaultValue={e?.exit_terms ?? ""} placeholder="A definir por contrato" /></label>
       <SubmitButton className="btn small">Guardar emisión</SubmitButton>
@@ -33,7 +35,8 @@ export default async function EmissionsPage({ searchParams }: { searchParams: SP
   const sp = await searchParams;
   const db = getDb();
   const emissions = db.prepare("SELECT * FROM emissions ORDER BY id DESC").all() as Emission[];
-  const project = db.prepare("SELECT * FROM projects ORDER BY id LIMIT 1").get() as { id: number; name: string; unit: string } | undefined;
+  const project = db.prepare("SELECT * FROM projects ORDER BY id LIMIT 1").get() as { id: number; name: string; unit: string; image_url: string | null } | undefined;
+  const updates = project ? (db.prepare("SELECT * FROM project_updates WHERE project_id = ? ORDER BY update_date DESC, id DESC").all(project.id) as { id: number; update_date: string; title: string }[]) : [];
   const prices = project ? (db.prepare("SELECT * FROM m2_prices WHERE project_id = ? ORDER BY effective_date DESC").all(project.id) as { price_cents: number; effective_date: string; source: string; created_at: string }[]) : [];
   return (
     <>
@@ -62,6 +65,28 @@ export default async function EmissionsPage({ searchParams }: { searchParams: SP
           </form>
           <table style={{ marginTop: 12 }}><thead><tr><th>Desde</th><th className="r">USD/m²</th><th>Fuente</th><th>Cargado</th></tr></thead>
             <tbody>{prices.map((p, i) => <tr key={i}><td>{formatDate(p.effective_date)}</td><td className="r num">{usd(p.price_cents)}</td><td>{p.source}</td><td>{p.created_at.slice(0, 10)}</td></tr>)}</tbody></table>
+        </div>
+      )}
+      {project && (
+        <div className="card section">
+          <h2>Foto y novedades de obra</h2>
+          <p className="muted">Lo ven los inversores en "Dónde está tu plata". Subí solo material real del proyecto.</p>
+          <form action={projectImageAction} className="inline-form">
+            <input type="hidden" name="project" value={project.id} />
+            <label>Foto principal (dirección de la imagen)<input name="image" defaultValue={project.image_url ?? ""} placeholder="https://…" /></label>
+            <SubmitButton className="btn small">Guardar foto</SubmitButton>
+          </form>
+          <form action={projectUpdateAction} className="form" style={{ marginTop: 16 }}>
+            <input type="hidden" name="project" value={project.id} />
+            <div className="inline-form">
+              <label>Fecha<input type="date" name="date" defaultValue={today()} required /></label>
+              <label>Título<input name="title" required placeholder="Ej.: Terminamos la losa del 2.º piso" /></label>
+              <label>Foto (opcional)<input name="image" placeholder="https://…" /></label>
+            </div>
+            <label>Detalle<textarea name="body" rows={2} /></label>
+            <SubmitButton className="btn small">Publicar novedad</SubmitButton>
+          </form>
+          <ul className="list" style={{ marginTop: 12 }}>{updates.map((u) => <li key={u.id}><span>{u.title}</span><small>{formatDate(u.update_date)}</small></li>)}</ul>
         </div>
       )}
     </>

@@ -13,24 +13,26 @@ La app tiene **dos solapas**, más una de administración que solo ve el adminis
 | Solapa | Ruta | Qué muestra |
 | --- | --- | --- |
 | **Inversión** (general, la misma para todos) | `/inversion` | Contador en vivo de los intereses generados entre todos; capital trabajando; generación por día, mes y año; **lista de inversores de mayor a menor** (nombre, cuánto puso, intereses generados, genera por mes) con detalle desplegable de aportes; gráfico general; próximos cobros de todos |
-| **Mi panel** (individual, uno por usuario) | `/` | Saludo; contador en vivo de sus intereses; "hoy tenés"; aviso para reinvertir; simulador "¿Y si sumás más?"; próximos cobros; gráfico; "Tu plata, en metros del depto" (solo tokens); logros; aportes desplegables; últimos movimientos |
+| **Mi panel** (individual, uno por usuario) | `/` | En este orden: **1.** "Tu inversión" (franja azul noche): capital, intereses para usar e intereses en curso por separado, rendimiento acumulado y la acción principal "Sumar inversión" (cobrar o reinvertir como secundarias). **2.** Próximo cobro con calendario y **meta personal** con barra y plan ("sumando USD 100 por mes llegás en X meses"). **3.** "Dónde está tu plata": proyecto, foto, quién construye, **quién responde**, equivalencia orientativa en m², documentos y **novedades de obra**. **4.** "Elegí tu próximo paso": simulador, **bola de nieve** (cobrar contra reinvertir a 5 años) e **invertir una parte de cada comisión**. **5.** Hitos. **6.** Evolución: gráfico, aportes desplegables y movimientos. **7.** "¿Cómo funciona?" con glosario. Cada concepto tiene un botón "¿Qué es?" con la explicación en palabras simples |
 | Administrar (solo admin) | `/admin/*` | Solicitudes, liquidaciones, titulares, emisiones, comisiones, movimientos, documentos, usuarios, auditoría |
 
 Pantallas que se abren desde **Mi panel**:
 
 | Pantalla | Ruta | Qué hace |
 | --- | --- | --- |
-| Invertir | `/invertir` | Barra tipo simulador para elegir tokens, origen de los fondos (transferencia o comisión en USD) y confirmación |
-| Festejo | `/listo` | Después de invertir o reinvertir: lo que va a ganar, tokens, m² y logro desbloqueado |
+| Sumar inversión | `/invertir` | Barra para elegir tokens (conserva lo elegido en el simulador), **ficha "Antes de confirmar"** (qué contratás, quién responde, cómo rinde, cuándo cobrás, cómo salís antes, qué podés consultar), qué pasa después, origen de los fondos y envío de la solicitud |
+| Confirmación | `/listo` | Inversión: **"Solicitud recibida"** con los 3 pasos que faltan y cómo va a quedar cuando se active (sin festejar antes de tiempo). Reinversión: confirmación breve con lo que cambió y el hito, si corresponde |
 | Tus intereses | `/intereses` | Cobrar y reinvertir lado a lado (reinvertir como recomendado) y reinversión automática |
 | Movimientos | `/movimientos` | Línea de tiempo por mes con íconos; los cobros de intereses quedan destacados; filtros y descarga CSV |
 | Rescate | `/rescatar` | Solicitud de devolución de capital, sujeta al contrato |
 
 **Una vista de referencia sin datos reales** está en `docs/vista-ejemplo/index.html`: se abre con doble clic y muestra el panel de un inversor ficticio tal como tiene que quedar.
 
-## 3. Estética
+## 3. Estética y tono
 
-Fondo gris cálido (`#f3f2ef`), tarjetas blancas con borde fino, azul marino para el capital y verde para los intereses, totales grandes y destacados con borde verde. Los tokens están en `app/globals.css` (incluye modo oscuro). Se puede adaptar a la estética del CRM, pero conviene conservar el tono simple y lúdico: está pensado para personas sin experiencia financiera.
+Azul noche, blanco y un verde distintivo reservado para ganancias y acciones importantes. Botón principal sólido, pocos recuadros dentro de recuadros, animaciones cortas y sin papelitos. En el celular hay menú inferior: Inicio · Invertir · Movimientos · Todos.
+
+**Tono:** lenguaje simple, educativo y didáctico, pensado para personas que nunca invirtieron. Cada término tiene su explicación ("¿Qué es?"), los montos futuros dicen "estimado" y la tasa siempre aparece como pactada, no garantizada. Los tokens están en `app/globals.css` (incluye modo oscuro). Se puede adaptar a la estética del CRM, pero conviene conservar el tono simple y lúdico: está pensado para personas sin experiencia financiera.
 
 ## 4. Qué hay en el código
 
@@ -44,6 +46,7 @@ Fondo gris cálido (`#f3f2ef`), tarjetas blancas con borde fino, azul marino par
 | Interacciones (contador en vivo, simulador) | `public/rw-enhance.js` | Sí: JS sin dependencias que actúa sobre atributos `data-ticker` y `data-sim` |
 | Acciones del servidor | `app/actions.ts` | Adaptar a la forma en que el CRM maneja formularios |
 | Carga de datos reales | `scripts/seed.ts` | Pasar estos datos a la base del CRM |
+| Meta, % de comisión automática, quién responde, novedades de obra | `lib/db.ts` (migraciones), `lib/ledger.ts` (`setGoal`, `setCommissionPct`, `applyAutoCommission`), `components/Panel.tsx` | Sí |
 | Liquidación diaria | `scripts/liquidar.ts` | Programarla en el CRM |
 | Tests (40) | `tests/` | **Sí**: tienen que seguir pasando |
 
@@ -53,7 +56,7 @@ Stack actual: Next.js 15, React 19, SQLite (better-sqlite3), TypeScript. Para pr
 
 1. **Usuarios y roles** (`lib/auth.ts`): reemplazar por la sesión del CRM. Renta Work solo necesita el `id`, el `name` y si el usuario es `admin` o `agent`.
 2. **Titular ↔ usuario** (`holders.user_id`): cada usuario habilitado en Renta Work es un titular vinculado a su usuario del CRM. Así cada uno ve **su** panel.
-3. **Rendiciones** (`commissions`): reemplazar el alta manual por las rendiciones en dólares del CRM con estado "disponible". Solo esas se pueden invertir; las comisiones en pesos no participan.
+3. **Rendiciones** (`commissions`): reemplazar el alta manual por las rendiciones en dólares del CRM con estado "disponible". Solo esas se pueden invertir; las comisiones en pesos no participan. Cuando una comisión pasa a "disponible", llamar a `applyAutoCommission(id)`: si el agente eligió invertir un porcentaje, crea sola la solicitud por los tokens enteros que correspondan.
 4. **Documentos** (`documents`): usar el repositorio documental del CRM. Cada titular ve solo los suyos.
 5. **Liquidación diaria**: ejecutar `runSettlements(hoy)` una vez por día. Es idempotente: correrla dos veces no duplica nada.
 
@@ -96,6 +99,8 @@ Son siete posiciones distintas: no hay que eliminar ninguna aunque coincidan en 
 | Plazo de 24 meses | Propuesta, pendiente de confirmación |
 | Vencimiento de los préstamos de ALFAH | No documentado |
 | Emisor, contratos, impuestos y encuadre legal | Sin definir. Por eso la recepción real de dinero está deshabilitada |
+| Quién responde, costos y salida anticipada | Se cargan en Administrar → Emisiones. Mientras no estén, la ficha dice "A definir" |
+| Fotos y novedades de la obra | Se cargan en Administrar → Emisiones. Solo material real de la desarrolladora |
 
 ## 9. Prompt para Claude
 
